@@ -17,20 +17,18 @@ DentalFlow AI separates six core domains:
 
 ```
 src/
-├── channels/telegram/bot.py    — create_bot(), handler registration
-├── channels/telegram/handlers/ — message_handler, callback_handler (thin)
+├── channels/telegram/handlers.py — message_handler, handle_message (thin)
 ├── config/loader.py            — load_config() reads .env + client JSONs
-├── followup/engine.py          — FollowUpEngine, async polling loop
-├── integrations/crm/base.py    — CRMProvider abstract base
+├── followup/__init__.py         — FollowUpEngine, async polling loop
+├── integrations/crm/provider.py — CRMProvider abstract base
 ├── integrations/crm/mock.py    — MockCRMProvider for development
 ├── leads/state_machine.py      — FiniteStateMachine with _TRANSITION_TABLE
-├── leads/qualification.py      — score_lead() using configurable rules
 ├── leads/repository.py         — LeadRepository (CRUD on SQLite)
 ├── llm/client.py               — OpenAIClient, parse() with Pydantic model
 ├── llm/contracts.py            — AIOutput Pydantic model
+├── rules/qualification.py      — score_lead() using configurable rules
 ├── rules/safety.py             — blocked_phrases check, refusal counter
-├── rules/validator.py          — validate_safe_action(), validate_transition()
-├── rules/faq.py                — FAQ matching from client config
+├── rules/validator.py          — validate_ai_output(), validate_transition()
 ├── storage/database.py         — init_db(), get_db()
 └── main.py                     — lifecycle: init → start → poll → shutdown
 ```
@@ -41,29 +39,22 @@ src/
 User Message (Telegram)
   │
   ▼
-src/channels/telegram/handlers/
-  │  parse update → extract chat_id, text
-  │  call process_message(chat_id, text)
+src/channels/telegram/handlers.py (handle_message)
+  │  1. Safety check — blocked phrases, refusal count, BLOCKED state
+  │  2. Restore lead from DB, cancel follow-up if rejoining
+  │  3. Build LLM context (state + known fields + conversation summary)
+  │  4. Call LLM client — returns structured AIOutput (action, reply, fields)
+  │  5. Validate output — validate_ai_output() checks safety + scope
+  │  6. Extract fields — name, phone, service from LLM output
+  │  7. State transition — suggest_state() + validate_transition() + apply_transition()
+  │  8. Auto-advance — _try_advance_lead() if all critical fields collected
   ▼
-src/leads/handler.py
-  │  1. Safety check (blocked phrases, refusal count)
-  │  2. FAQ match → respond directly
-  │  3. Build LLM context (config + conversation summary)
-  ▼
-src/llm/client.py → OpenAI API
-  │  Returns structured AIOutput (action, reply, fields...)
-  ▼
-src/rules/validator.py
-  │  Validate action: is it safe? Is the transition legal?
-  ▼
-src/leads/state_machine.py
-  │  validate_transition() + apply_transition()
+src/integrations/crm/ (if state = crm_write)
+  │  _write_to_crm() via CRMProvider interface
+  │  Optionally schedule follow-up task
   ▼
 src/storage/database.py
-  │  Save lead, conversation summary, follow-up task
-  ▼
-src/integrations/crm/ (if threshold met)
-     Write lead to CRM provider
+     Save lead, conversation summary, follow-up task
 ```
 
 ## Key Decisions Summary

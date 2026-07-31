@@ -43,7 +43,7 @@ Score ≥ threshold (25)? ──yes──→ CRM write → state = crm_written
 Request missing fields → state = collecting
 ```
 
-CRM access goes through `CRMProvider` interface (`src/integrations/crm/base.py`). The active provider is selected by the `DENTALFLOW_CRM_PROVIDER` environment variable. Currently implemented: `mock` (stores in SQLite, logs to console).
+CRM access goes through `CRMProvider` interface (`src/integrations/crm/provider.py`). The active provider is selected by the `DENTALFLOW_CRM_PROVIDER` environment variable. Currently implemented: `mock` (stores in SQLite, logs to console).
 
 ## Follow-up Behaviour
 
