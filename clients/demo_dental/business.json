@@ -1,0 +1,23 @@
+{
+  "name": "Bright Smile Dental",
+  "address": "123 Wellness Drive, Suite 200, Austin, TX 78701",
+  "phone": "+1 (512) 555-0142",
+  "hours": {
+    "monday": "08:00-17:00",
+    "tuesday": "08:00-17:00",
+    "wednesday": "08:00-17:00",
+    "thursday": "08:00-17:00",
+    "friday": "08:00-15:00",
+    "saturday": "closed",
+    "sunday": "closed"
+  },
+  "timezone": "America/Chicago",
+  "staff_chat_id": 0,
+  "messages": {
+    "welcome": "Hello! Welcome to Bright Smile Dental. How can I help you today?",
+    "error_generic": "I'm sorry, I couldn't process your request. Please try again or contact us by phone.",
+    "error_out_of_scope": "I'm sorry, I can only answer questions about our dental services. Would you like to know about our treatments or schedule a visit?",
+    "error_unsafe": "I'm sorry, I can't provide that information. Please contact the clinic directly for any urgent concerns.",
+    "error_missing_token": "System configuration error. Please contact the administrator."
+  }
+}

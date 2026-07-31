@@ -1,0 +1,88 @@
+[
+  {
+    "question_patterns": [
+      "what are your hours",
+      "when are you open",
+      "business hours",
+      "what time do you open"
+    ],
+    "answer": "We are open Monday through Thursday from 8:00 AM to 5:00 PM, and Friday from 8:00 AM to 3:00 PM. We are closed on weekends."
+  },
+  {
+    "question_patterns": [
+      "where are you located",
+      "what is your address",
+      "how do I find you",
+      "directions"
+    ],
+    "answer": "We are located at 123 Wellness Drive, Suite 200, Austin, TX 78701."
+  },
+  {
+    "question_patterns": [
+      "what is your phone number",
+      "how do I call you",
+      "phone",
+      "contact number"
+    ],
+    "answer": "You can reach us at +1 (512) 555-0142 during business hours."
+  },
+  {
+    "question_patterns": [
+      "do you accept insurance",
+      "what insurance do you take",
+      "insurance"
+    ],
+    "answer": "We accept most major dental insurance plans. Please contact our office with your insurance details and we will verify your coverage before your visit."
+  },
+  {
+    "question_patterns": [
+      "how much does it cost",
+      "prices",
+      "pricing",
+      "fees",
+      "how much"
+    ],
+    "answer": "Treatment costs vary based on your specific needs and insurance coverage. We recommend scheduling a consultation for a personalized treatment plan and cost estimate."
+  },
+  {
+    "question_patterns": [
+      "what services do you offer",
+      "what treatments",
+      "what do you do",
+      "services"
+    ],
+    "answer": "We offer general checkups, teeth cleaning, cavity fillings, root canals, tooth extractions, teeth whitening, dental crowns, implant consultations, and emergency exams. Would you like more details on any of these?"
+  },
+  {
+    "question_patterns": [
+      "how often should I visit",
+      "how often should I come",
+      "how often checkup"
+    ],
+    "answer": "We recommend a routine checkup and cleaning every six months for most patients. Your dentist may suggest a different frequency based on your oral health needs."
+  },
+  {
+    "question_patterns": [
+      "do you accept new patients",
+      "new patient",
+      "are you accepting new patients"
+    ],
+    "answer": "Yes, we are currently accepting new patients! We would be happy to welcome you to Bright Smile Dental."
+  },
+  {
+    "question_patterns": [
+      "what should I bring to my first visit",
+      "first visit",
+      "new patient what to bring"
+    ],
+    "answer": "For your first visit, please bring your photo ID, insurance card (if applicable), and a list of any medications you are currently taking."
+  },
+  {
+    "question_patterns": [
+      "do you offer payment plans",
+      "payment options",
+      "financing"
+    ],
+    "answer": "We offer various payment options. Please contact our office to discuss payment plans and financing options that may be available to you."
+  }
+]

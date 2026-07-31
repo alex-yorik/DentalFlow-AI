@@ -1,0 +1,10 @@
+{
+  "templates": {
+    "initial": "Hi {name}! We noticed you were interested in {service_interest} at Bright Smile Dental. Would you like to schedule an appointment? Reply or call us at +1 (512) 555-0142.",
+    "reminder": "Just a friendly reminder that we're here to help with your dental care needs at Bright Smile Dental. Would you like to book a time that works for you?",
+    "final": "This is our last follow-up. If you'd still like to visit Bright Smile Dental, feel free to call us at +1 (512) 555-0142 or message us here anytime."
+  },
+  "delay_minutes": 60,
+  "max_retries": 2,
+  "demo_delay_seconds": 60
+}

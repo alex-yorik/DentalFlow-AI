@@ -3,6 +3,7 @@ import logging
 
 from src.config.loader import load_config
 from src.channels.telegram.bot import create_bot
+from src.storage.database import init_db
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -19,10 +20,13 @@ async def main() -> None:
         logger.error("TELEGRAM_BOT_TOKEN is not set. Create .env from .env.example")
         return
 
+    await init_db()
+    logger.info("Database initialized")
+
     bot = create_bot(config)
     await bot.initialize()
     await bot.start()
-    logger.info("DentalFlow AI started (bot: %s)", config.client_name)
+    logger.info("Bot started (client: %s)", config.client_name)
     await bot.updater.start_polling()
     await asyncio.Event().wait()
 

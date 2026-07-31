@@ -1,0 +1,47 @@
+[
+  {
+    "name": "General Checkup",
+    "description": "Comprehensive oral examination, cleaning, and preventive care assessment.",
+    "duration_minutes": 60
+  },
+  {
+    "name": "Teeth Cleaning",
+    "description": "Professional dental hygiene cleaning and plaque removal.",
+    "duration_minutes": 45
+  },
+  {
+    "name": "Cavity Filling",
+    "description": "Restoration of tooth structure damaged by decay using composite material.",
+    "duration_minutes": 60
+  },
+  {
+    "name": "Root Canal",
+    "description": "Treatment of infected tooth pulp to relieve pain and save the tooth.",
+    "duration_minutes": 90
+  },
+  {
+    "name": "Tooth Extraction",
+    "description": "Removal of a damaged or problematic tooth under local anesthesia.",
+    "duration_minutes": 45
+  },
+  {
+    "name": "Teeth Whitening",
+    "description": "Professional in-office whitening treatment for brighter teeth.",
+    "duration_minutes": 60
+  },
+  {
+    "name": "Dental Crown",
+    "description": "Custom-made cap placed over a damaged tooth to restore shape and function.",
+    "duration_minutes": 90
+  },
+  {
+    "name": "Dental Implant Consultation",
+    "description": "Evaluation and planning for tooth replacement with dental implants.",
+    "duration_minutes": 60
+  },
+  {
+    "name": "Emergency Exam",
+    "description": "Immediate evaluation for dental pain, injury, or urgent concerns.",
+    "duration_minutes": 45
+  }
+]

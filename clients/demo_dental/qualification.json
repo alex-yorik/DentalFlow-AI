@@ -1,0 +1,13 @@
+{
+  "critical_fields": ["name", "phone", "service_interest"],
+  "score_rules": {
+    "has_name": 10,
+    "has_phone": 10,
+    "has_email": 5,
+    "has_service_interest": 10,
+    "has_preferred_time": 5,
+    "intent_is_new_appointment": 10,
+    "urgency_is_urgent": 5
+  },
+  "crm_write_threshold": 25
+}

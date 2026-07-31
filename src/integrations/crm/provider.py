@@ -1,0 +1,16 @@
+from abc import ABC, abstractmethod
+
+from src.leads.models import Lead
+
+
+class CRMProvider(ABC):
+    @abstractmethod
+    async def create_contact(self, lead: Lead) -> str: ...
+    @abstractmethod
+    async def update_contact(self, contact_id: str, lead: Lead) -> None: ...
+    @abstractmethod
+    async def create_lead(self, contact_id: str, lead: Lead) -> str: ...
+    @abstractmethod
+    async def add_note(self, lead_id: str, note: str) -> None: ...
+    @abstractmethod
+    async def update_stage(self, lead_id: str, stage: str) -> None: ...

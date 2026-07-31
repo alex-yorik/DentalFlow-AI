@@ -1,0 +1,19 @@
+{
+  "blocked_phrases": [
+    "price",
+    "cost",
+    "cheap",
+    "discount",
+    "free",
+    "guarantee",
+    "diagnosis",
+    "prescription",
+    "painkiller",
+    "antibiotic",
+    "cure",
+    "heal",
+    "natural remedy"
+  ],
+  "confidence_threshold": 0.5,
+  "max_refusal_count": 3
+}
