@@ -42,3 +42,33 @@ Each subphase MUST:
 - Merging subphases together
 - Skipping review for any subphase
 - Combining subphases into a single commit
+- **Expanding subphase scope beyond the original plan — split into a new subphase instead**
+
+## Handoff Tokens
+
+Каждая подфаза завершается **token-minimal handoff-блоком**, который пользователь копирует в следующую сессию.
+
+### Типы токенов
+
+| Токен | Кто генерирует | Куда вставляется |
+|-------|---------------|-------------------|
+| `PROMPT FOR FLASH` | Pro (после Planning) | Сессия Flash |
+| `PROMPT FOR PRO QA` | Flash (после Build) | Сессия Pro для QA |
+| `PROMPT FOR PRO (NEXT PHASE)` | Pro (после APPROVE) | Сессия Pro для следующей подфазы |
+
+### Формат
+
+```
+====================
+PROMPT FOR <роль>
+====================
+<содержание блока>
+```
+
+### Правила
+
+1. Каждый токен — законченное задание, которое можно скопировать одним блоком.
+2. Пользователь **не редактирует** содержимое блока и **не дописывает** свой запрос.
+3. После `REQUEST_CHANGES` — только `PROMPT FOR FLASH`, без дополнительных пояснений.
+4. После `APPROVE` — `APPROVED` + git-команды + `PROMPT FOR PRO (NEXT PHASE)`.
+5. Токены **обязательны**. Пропуск токена — нарушение workflow.

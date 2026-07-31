@@ -11,6 +11,9 @@ Prevent endless review loops and scope expansion after approval.
 Pro: REQUEST CHANGES
        │
        ▼
+[PROMPT FOR FLASH]  ← только перечень исправлений, без новых улучшений
+       │
+       ▼
 Flash: fixes all noted findings
        │
        ▼
@@ -22,18 +25,18 @@ Pro: re-checks ONLY:
      • Are the new regression tests meaningful?
      • Do all tests pass?
        │
-       ├── APPROVE → see below
+       ├── APPROVE → [PROMPT FOR PRO (NEXT PHASE)]
        └── REQUEST CHANGES → repeat (max 1 additional cycle)
 ```
 
 ## Rules After REQUEST CHANGES
 
-- Pro reviews **only** the original findings
-- Pro does **not** search for new issues
-- Pro does **not** introduce new findings unless they block merge
-- Flash fixes **only** the specified findings — no extra work
-- Flash writes regression tests **only** for the fixed findings
-- Maximum 2 review cycles per subphase
+- Pro выводит **только** блок `PROMPT FOR FLASH` с перечнем исправлений.
+- Pro **не ищет** новые улучшения, новые идеи, новые подфазы.
+- Pro **не добавляет** ничего сверх списка исправлений.
+- Flash фиксирует **только указанные** замечания — никакой дополнительной работы.
+- Flash пишет регрессионные тесты **только** для исправленных замечаний.
+- Максимум 2 цикла ревью на подфазу.
 
 ## Workflow After APPROVE
 
@@ -41,27 +44,30 @@ Pro: re-checks ONLY:
 Pro: APPROVE
        │
        ▼
-Merge immediately
+Вывод:
+  • APPROVED
+  • git add <files>
+  • git commit -m "<message>"
+  • git push
+  • git tag <version>
        │
        ▼
-Commit
+[PROMPT FOR PRO (NEXT PHASE)]  ← планирование следующей подфазы
        │
        ▼
-Push
-       │
-       ▼
-New session
+Пользователь копирует блок в новую сессию Pro
 ```
 
-## Forbidden After APPROVE
+## Rules After APPROVE
 
-- Searching for new improvements
-- Searching for new technical debt
-- Proposing new refactoring
-- Expanding scope
-- Starting another architecture review
-- Starting another QA review
-- Adding new ideas to the current subphase (go to BACKLOG.md)
+- Pro **обязан** вывести:
+  1. `APPROVED`
+  2. Список git-команд для коммита, пуша и тэга
+  3. Блок `PROMPT FOR PRO (NEXT PHASE)` для запуска следующей подфазы
+- Запрещён поиск новых улучшений, техдолга, рефакторинга.
+- Запрещено расширение scope текущей подфазы.
+- Запрещено начинать новый architecture review или QA review.
+- Все новые идеи → в `docs/BACKLOG.md`.
 
 ## One Subphase = One Review Cycle
 

@@ -13,20 +13,22 @@ User Request
        ▼
 Classifier
        │
-       ├── documentation     → docs/process/file_scope.md
-       ├── qa                → docs/process/file_scope.md
-       ├── architecture      → docs/process/file_scope.md
-       ├── configuration     → docs/process/file_scope.md
-       ├── bug_fix           → docs/process/file_scope.md
-       ├── code_review       → docs/process/file_scope.md
-       ├── phase_planning    → docs/process/file_scope.md
-       └── new_phase         → docs/process/file_scope.md
+       ├── handoff          → docs/process/file_scope.md
+       ├── documentation    → docs/process/file_scope.md
+       ├── qa               → docs/process/file_scope.md
+       ├── architecture     → docs/process/file_scope.md
+       ├── configuration    → docs/process/file_scope.md
+       ├── bug_fix          → docs/process/file_scope.md
+       ├── code_review      → docs/process/file_scope.md
+       ├── phase_planning   → docs/process/file_scope.md
+       └── new_phase        → docs/process/file_scope.md
 ```
 
 ## Classification Heuristics
 
 | If request contains … | Classify as … |
 |-----------------------|---------------|
+| "PROMPT FOR", "handoff block", "next phase" | `handoff` |
 | "documentation", "doc", "readme", "playbook" | `documentation` |
 | "test", "regression", "qa", "verify" | `qa` |
 | "architecture", "review", "design" | `architecture` |

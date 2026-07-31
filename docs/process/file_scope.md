@@ -73,3 +73,9 @@ clients/<client_name>/*
 ### New Phase Implementation (Flash)
 
 Only the files listed in the architecture plan. Nothing else.
+
+### Handoff (любая роль)
+
+Тип `handoff` означает, что модель получила готовый блок `PROMPT FOR <роль>`.
+Allowed Files определяются содержимым этого блока. Агент **не выполняет** классификацию,
+а сразу переходит к чтению файлов, указанных в блоке.

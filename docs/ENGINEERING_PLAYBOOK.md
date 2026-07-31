@@ -47,47 +47,60 @@ Every team member and every AI agent participating in this project MUST follow t
 Every phase follows this exact sequence:
 
 ```
-Phase Planning
+Phase Planning (Pro)
        │
        ▼
-Architecture Plan (Pro)
+[PROMPT FOR FLASH]  ← пользователь копирует в сессию Flash
        │
        ▼
 Implementation (Flash)
        │
        ▼
+[PROMPT FOR PRO QA]  ← пользователь копирует в сессию Pro
+       │
+       ▼
 Architecture / Code Review (Pro)
        │
-       ▼
-Fixes (Flash)
+       ├── REQUEST_CHANGES
+       │       │
+       │       ▼
+       │   [PROMPT FOR FLASH]  ← только исправления, без новых идей
+       │       │
+       │       ▼
+       │   Fixes (Flash) → Review (Pro) → APPROVE
        │
-       ▼
-Regression Tests (Flash)
-       │
-       ▼
-QA Verification (Pro)
-       │
-       ▼
-APPROVE
-       │
-       ▼
-Merge
-       │
-       ▼
-Commit
-       │
-       ▼
-Push
-       │
-       ▼
-Git Tag
-       │
-       ▼
-Next Phase
+       └── APPROVE
+               │
+               ▼
+           APPROVED
+               │
+               ▼
+           git add, commit, push, tag
+               │
+               ▼
+           [PROMPT FOR PRO (NEXT PHASE)]  ← планирование следующей подфазы
+               │
+               ▼
+           Next Phase
 ```
 
 **No step may be skipped.**  
 **No step may be reordered.**
+
+### Handoff Protocol
+
+Между каждым этапом модели генерируют **стандартный handoff-блок**, который пользователь копирует целиком.
+
+| Этап | Генерирует | Получатель |
+|------|-----------|-----------|
+| Pro завершил Planning | `PROMPT FOR FLASH` | Flash |
+| Flash завершил Build | `PROMPT FOR PRO QA` | Pro |
+| Pro завершил QA → REQUEST_CHANGES | `PROMPT FOR FLASH` (только исправления) | Flash |
+| Pro завершил QA → APPROVE | `APPROVED` + git-команды + `PROMPT FOR PRO (NEXT PHASE)` | следующая подфаза |
+
+Блоки отделяются строкой `====================` и содержат заголовок `PROMPT FOR <роль>`.
+
+Пользователь **не пишет запросы вручную**. Только копирует блоки между сессиями.
 
 ## Context Loading Order
 
@@ -134,6 +147,7 @@ See `docs/process/context_loading.md` for the full strategy.
 | **Approve → Merge** | After APPROVE, merge immediately. No additional work on the same scope. |
 | **New Session After Merge** | Each task starts in a fresh session. No continuations across tasks. |
 | **Maximum 5 Files Per Task** | Hard limit. Larger tasks must be split by Pro. |
+| **Maximum Plan Size** | Plan: ≤500 words, ≤1 table, ≤7 main items. Larger plans must be split. |
 
 These principles reduce agent operating costs by limiting context size to the absolute minimum required for each task.
 
