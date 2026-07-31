@@ -1,4 +1,6 @@
 import logging
+import time
+from collections import defaultdict, deque
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -18,7 +20,12 @@ from src.followup import FollowUpEngine
 
 logger = logging.getLogger(__name__)
 
-_FIELD_MAP = {
+_MAX_INPUT_LENGTH = 2000
+
+_RATE_LIMIT_MAX = 10
+_RATE_LIMIT_WINDOW = 60.0
+
+_field_map = {
     "name": "name",
     "phone": "phone",
     "email": "email",
@@ -28,9 +35,18 @@ _FIELD_MAP = {
 }
 
 
+def _sanitize_input(text: str | None) -> str | None:
+    if not text:
+        return None
+    stripped = text.strip()
+    if not stripped:
+        return None
+    return stripped[:_MAX_INPUT_LENGTH]
+
+
 def _build_context(lead: Lead) -> str:
     known = []
-    for src, dst in _FIELD_MAP.items():
+    for src, dst in _field_map.items():
         val = getattr(lead, dst, None)
         if val:
             known.append(f"{src}={val}")
@@ -46,7 +62,7 @@ def _apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: s
     for field in output.extracted_fields:
         if field.confidence < 0.5:
             continue
-        lead_field = _FIELD_MAP.get(field.field_name)
+        lead_field = _field_map.get(field.field_name)
         if lead_field and getattr(lead, lead_field, None) is None:
             setattr(lead, lead_field, field.value)
 
@@ -102,6 +118,23 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot, schedule_followup: b
         logger.error("CRM write failed: %s", e)
 
 
+_rate_limit: dict[int, deque] = defaultdict(deque)
+
+
+def _check_rate_limit(chat_id: int) -> bool:
+    now = time.monotonic()
+    timestamps = _rate_limit[chat_id]
+    while timestamps and timestamps[0] < now - _RATE_LIMIT_WINDOW:
+        timestamps.popleft()
+    if len(timestamps) >= _RATE_LIMIT_MAX:
+        return False
+    timestamps.append(now)
+    return True
+
+
+_RATE_LIMIT_REPLY = "Please slow down. You are sending messages too quickly."
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: AppConfig = context.bot_data["config"]
     text = config.client.business.messages.get("welcome", "Hello!")
@@ -111,8 +144,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: AppConfig = context.bot_data["config"]
     llm_client: LLMClient = context.bot_data["llm_client"]
-    user_text = update.message.text
     chat_id = update.effective_chat.id
+
+    user_text = _sanitize_input(update.message.text)
+    if user_text is None:
+        await update.message.reply_text(
+            config.client.business.messages.get("error_generic", "")
+        )
+        return
+
+    if not _check_rate_limit(chat_id):
+        logger.warning("Rate limit hit for chat %s", chat_id)
+        await update.message.reply_text(_RATE_LIMIT_REPLY)
+        return
 
     lead = await get_lead_by_chat_id(chat_id)
 
@@ -158,7 +202,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
-    verdict = check_safety(output, config.client.rules)
+    verdict = check_safety(output, config.client.rules, lead)
     if not verdict.allowed:
         logger.warning("Safety check failed for chat %s: %s", chat_id, verdict.blocked_reason)
         await update.message.reply_text(
@@ -168,7 +212,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             t = validate_transition(lead.state, LeadState.BLOCKED)
             if t.allowed:
                 apply_transition(lead, LeadState.BLOCKED)
-                await update_lead(lead)
+        await update_lead(lead)
         return
 
     _apply_extracted_fields(lead, output, user_text, output.reply_text)

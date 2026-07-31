@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS leads (
     internal_tags TEXT NOT NULL DEFAULT '[]',
     crm_contact_id TEXT,
     followup_task_id TEXT,
+    refusal_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

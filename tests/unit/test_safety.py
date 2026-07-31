@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
+
 from src.llm.contracts import AIOutput, Intent, SuggestedAction, ExtractedField
 from src.config.loader import RulesConfig
+from src.leads.models import Lead
 from src.rules.safety import check_safety
 
 RULES = RulesConfig(
@@ -26,6 +29,17 @@ def _output(**kwargs) -> AIOutput:
     )
     defaults.update(kwargs)
     return AIOutput(**defaults)
+
+
+def _lead(**kwargs) -> Lead:
+    defaults = dict(
+        id="test_lead_id",
+        telegram_chat_id=99999,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    defaults.update(kwargs)
+    return Lead(**defaults)
 
 
 class TestSafetyCheck:
@@ -98,3 +112,39 @@ class TestSafetyCheck:
             RULES,
         )
         assert verdict.allowed
+
+    def test_first_refusal_does_not_escalate(self):
+        lead = _lead(refusal_count=0)
+        verdict = check_safety(
+            _output(reply_text="The price is $100"), RULES, lead,
+        )
+        assert not verdict.allowed
+        assert not verdict.escalate
+        assert lead.refusal_count == 1
+
+    def test_refusal_at_limit_escalates_to_block(self):
+        lead = _lead(refusal_count=2)
+        verdict = check_safety(
+            _output(reply_text="The price is $100"), RULES, lead,
+        )
+        assert not verdict.allowed
+        assert verdict.escalate
+        assert lead.refusal_count == 3
+
+    def test_refusal_count_accumulates_across_messages(self):
+        lead = _lead(refusal_count=0)
+        check_safety(_output(reply_text="The price is $100"), RULES, lead)
+        assert lead.refusal_count == 1
+        verdict = check_safety(
+            _output(reply_text="We guarantee results"), RULES, lead,
+        )
+        assert not verdict.allowed
+        assert not verdict.escalate
+        assert lead.refusal_count == 2
+
+    def test_safety_without_lead_escalates_immediately(self):
+        verdict = check_safety(
+            _output(reply_text="The price is $100"), RULES, lead=None,
+        )
+        assert not verdict.allowed
+        assert verdict.escalate

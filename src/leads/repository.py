@@ -25,6 +25,7 @@ def _row_to_lead(row) -> Lead:
         internal_tags=json.loads(row["internal_tags"]),
         crm_contact_id=row["crm_contact_id"],
         followup_task_id=row["followup_task_id"],
+        refusal_count=row["refusal_count"],
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
     )
@@ -46,13 +47,15 @@ async def create_lead(telegram_chat_id: int, source: str = "telegram") -> Lead:
                (id, telegram_chat_id, state, source,
                 opt_in_consent, internal_tags,
                 qualification_score, conversation_summary,
+                refusal_count,
                 created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 lead.id, lead.telegram_chat_id, lead.state.value, lead.source,
                 1 if lead.opt_in_consent else 0,
                 json.dumps(lead.internal_tags),
                 lead.qualification_score, lead.conversation_summary,
+                lead.refusal_count,
                 lead.created_at.isoformat(), lead.updated_at.isoformat(),
             ),
         )
@@ -87,7 +90,7 @@ async def update_lead(lead: Lead) -> None:
                intent=?, urgency=?, preferred_time=?, source=?,
                qualification_score=?, conversation_summary=?,
                opt_in_consent=?, internal_tags=?, crm_contact_id=?,
-               followup_task_id=?, updated_at=?
+               followup_task_id=?, refusal_count=?, updated_at=?
                WHERE id=?""",
             (
                 lead.state.value, lead.name, lead.phone, lead.email,
@@ -97,6 +100,7 @@ async def update_lead(lead: Lead) -> None:
                 1 if lead.opt_in_consent else 0,
                 json.dumps(lead.internal_tags),
                 lead.crm_contact_id, lead.followup_task_id,
+                lead.refusal_count,
                 lead.updated_at.isoformat(), lead.id,
             ),
         )

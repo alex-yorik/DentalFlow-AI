@@ -34,5 +34,6 @@ class Lead(BaseModel):
     internal_tags: list[str] = []
     crm_contact_id: Optional[str] = None
     followup_task_id: Optional[str] = None
+    refusal_count: int = 0
     created_at: datetime
     updated_at: datetime

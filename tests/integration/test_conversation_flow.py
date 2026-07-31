@@ -140,6 +140,10 @@ class TestHandleMessage:
         mock_update.message.reply_text.assert_awaited_with(expected)
 
     async def test_safety_block_with_escalation_blocks_lead_state(self, mock_update, mock_context, db):
+        lead = await create_lead(99999)
+        lead.refusal_count = 2
+        await update_lead(lead)
+
         mock_update.message.text = "I need a diagnosis"
         mock_context.bot_data["llm_client"].analyze.return_value = _make_output(
             intent=Intent.UNSAFE,
@@ -153,6 +157,7 @@ class TestHandleMessage:
         lead = await get_lead_by_chat_id(99999)
         assert lead is not None
         assert lead.state == LeadState.BLOCKED
+        assert lead.refusal_count == 3
 
     async def test_validation_failure_uses_out_of_scope_message(self, mock_update, mock_context, db):
         mock_update.message.text = "Book me"
