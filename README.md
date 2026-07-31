@@ -137,6 +137,12 @@ DentalFlow-AI/
 
 ---
 
+## Planning
+
+Use `docs/prompts/master-planning-prompt-v2.md` for architecture planning (simplified version).
+
+---
+
 ## License
 
 MIT — see LICENSE file.
