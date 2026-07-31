@@ -129,6 +129,11 @@ See `docs/process/context_loading.md` for the full strategy.
 | **Never Explore Without Permission** | Do not scan directories or open files "just to see". |
 | **Read Only What You Modify** | If the task changes one module, read only that module and its tests. |
 | **White-list Before Reading** | Always determine the allowed file list before opening anything. |
+| **One Task = One Scope** | A task covers exactly the files listed in Allowed Files. No scope expansion. |
+| **One Scope = One Commit** | Each task produces exactly one commit. No bundling of unrelated tasks. |
+| **Approve → Merge** | After APPROVE, merge immediately. No additional work on the same scope. |
+| **New Session After Merge** | Each task starts in a fresh session. No continuations across tasks. |
+| **Maximum 5 Files Per Task** | Hard limit. Larger tasks must be split by Pro. |
 
 These principles reduce agent operating costs by limiting context size to the absolute minimum required for each task.
 

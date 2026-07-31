@@ -35,6 +35,16 @@ After APPROVE:
 
 Avoid endless review loops.
 
+## Mandatory Rules for Flash
+
+Flash MUST:
+
+1. **Work only within Allowed Files** — never read or modify files outside the list.
+2. **Stop after completing the task** — do not start the next subphase.
+3. **Not search for additional problems** — do not look for bugs, tech debt, or improvements not in scope.
+4. **Not perform refactoring** — unless explicitly requested by Pro.
+5. **Not read additional files** — if a file is needed outside Allowed Files, stop and ask Pro.
+
 ## Mandatory Context Policy
 
 Before starting any task, the agent MUST:

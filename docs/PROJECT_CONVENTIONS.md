@@ -27,7 +27,7 @@ Every phase MUST follow this sequence:
 5. **Fixes** — Flash fixes findings.
 6. **Regression Tests** — Flash writes tests for every fix.
 7. **QA Verification** — Pro re-checks only the original findings and new tests.
-8. **APPROVE / REQUEST_CHANGES** — Pro decides.
+8. **APPROVE / REQUEST CHANGES** — Pro decides.
    - On APPROVE: merge, commit, push, git tag, close phase.
    - On REQUEST_CHANGES: return to step 5.
 
@@ -35,3 +35,15 @@ Key rules:
 - Flash **always** writes regression tests after fixing findings.
 - Pro **never** searches for new issues during re-review — only verifies previous findings.
 - After APPROVE, no new ideas are applied to the current phase. They go to `docs/BACKLOG.md`.
+
+## Task Format (Mandatory)
+
+Every task MUST include the following sections:
+
+```
+Task: <name>
+Allowed Files: <list of files>
+Forbidden Files: <list of files>
+Definition of Done: <acceptance criteria>
+Stop Condition: <what triggers the agent to stop>
+```
