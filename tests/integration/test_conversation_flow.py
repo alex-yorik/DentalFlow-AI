@@ -6,9 +6,10 @@ from src.config.loader import AppConfig, load_client_config
 from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
 from src.llm.client import LLMClient
 from src.channels.telegram.handlers import start_command, handle_message
-from src.leads.models import LeadState
+from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id, create_lead, update_lead
 from src.leads.state_machine import apply_transition
+from src.followup import FollowUpEngine
 from tests.conftest import CLIENT_NAME
 
 
@@ -206,3 +207,33 @@ class TestHandleMessage:
         assert lead.crm_contact_id is not None
 
         mock_update.message.reply_text.assert_awaited_with("Great, I'll register you now!")
+
+    async def test_crm_write_with_schedule_followup_goes_to_followup_pending(self, mock_update, mock_context, db):
+        mock_context.bot_data["followup_engine"] = FollowUpEngine(
+            mock_context.bot_data["config"], MagicMock()
+        )
+
+        mock_update.message.text = "Jane, 555-0200, booking a cleaning"
+        mock_context.bot_data["llm_client"].analyze.return_value = _make_output(
+            intent=Intent.LEAD,
+            is_lead=True,
+            reply_text="I'm scheduling a follow-up!",
+            extracted_fields=[
+                ExtractedField(field_name="name", value="Jane", confidence=0.99),
+                ExtractedField(field_name="phone", value="555-0200", confidence=0.99),
+                ExtractedField(field_name="service", value="Cleaning", confidence=0.99),
+            ],
+            missing_fields=[],
+            suggested_action=SuggestedAction.QUALIFY,
+            schedule_followup=True,
+        )
+
+        await handle_message(mock_update, mock_context)
+
+        lead = await get_lead_by_chat_id(99999)
+        assert lead is not None
+        assert lead.state == LeadState.FOLLOWUP_PENDING, (
+            "lead should transition to FOLLOWUP_PENDING when schedule_followup=True"
+        )
+        assert lead.crm_contact_id is not None
+        assert lead.followup_task_id is not None

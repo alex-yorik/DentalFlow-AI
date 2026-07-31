@@ -12,8 +12,9 @@ from src.rules.qualification import calculate_score
 from src.leads.models import Lead, LeadState
 from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
 from src.leads.state_machine import suggest_state, validate_transition, apply_transition
-from src.integrations.crm.mock import MockCRMProvider
+from src.integrations.crm import get_provider
 from src.integrations.notifications import notify_staff
+from src.followup import FollowUpEngine
 
 logger = logging.getLogger(__name__)
 
@@ -76,13 +77,27 @@ def _try_advance_lead(lead: Lead, qual_config: QualificationConfig) -> None:
             apply_transition(lead, LeadState.CRM_WRITE)
 
 
-async def _write_to_crm(lead: Lead, config: AppConfig) -> None:
-    crm = MockCRMProvider()
+async def _write_to_crm(lead: Lead, config: AppConfig, bot, schedule_followup: bool = False, followup_engine: FollowUpEngine | None = None) -> None:
+    if lead.crm_contact_id:
+        return
+    crm = get_provider(config.crm_provider)
     try:
         contact_id = await crm.create_contact(lead)
         lead.crm_contact_id = contact_id
-        await notify_staff(config, lead)
-        apply_transition(lead, LeadState.CLOSED)
+        lead_id = await crm.create_lead(contact_id, lead)
+        await crm.add_note(lead_id, f"Lead from Telegram: {lead.conversation_summary[:200]}")
+        await crm.update_stage(lead_id, "new")
+        await notify_staff(config, lead, bot)
+
+        if schedule_followup and followup_engine:
+            t = validate_transition(LeadState.CRM_WRITE, LeadState.FOLLOWUP_PENDING, lead, config.client.qualification)
+            if t.allowed:
+                apply_transition(lead, LeadState.FOLLOWUP_PENDING)
+                await followup_engine.schedule_followup(lead)
+            else:
+                apply_transition(lead, LeadState.CLOSED)
+        else:
+            apply_transition(lead, LeadState.CLOSED)
     except Exception as e:
         logger.error("CRM write failed: %s", e)
 
@@ -106,6 +121,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             config.client.business.messages.get("error_unsafe", "")
         )
         return
+
+    if lead and lead.state == LeadState.FOLLOWUP_PENDING:
+        followup_engine = context.bot_data.get("followup_engine")
+        if followup_engine:
+            await followup_engine.cancel_followup(lead.id)
+        lead.followup_task_id = None
+        lead = await get_lead_by_chat_id(chat_id)
 
     if lead and lead.state == LeadState.CLOSED:
         lead = None
@@ -163,12 +185,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         apply_transition(lead, next_state)
 
         if next_state == LeadState.CRM_WRITE:
-            await _write_to_crm(lead, config)
+            followup_engine = context.bot_data.get("followup_engine")
+            await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
 
     _try_advance_lead(lead, config.client.qualification)
 
     if lead.state == LeadState.CRM_WRITE:
-        await _write_to_crm(lead, config)
+        followup_engine = context.bot_data.get("followup_engine")
+        await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
 
     await update_lead(lead)
     await update.message.reply_text(output.reply_text)

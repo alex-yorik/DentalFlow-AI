@@ -126,6 +126,10 @@ class TestAllowedTransitions:
         result = validate_transition(LeadState.CRM_WRITE, LeadState.BLOCKED)
         assert result.allowed
 
+    def test_crm_write_to_followup(self):
+        result = validate_transition(LeadState.CRM_WRITE, LeadState.FOLLOWUP_PENDING)
+        assert result.allowed
+
     def test_followup_to_collect(self):
         result = validate_transition(LeadState.FOLLOWUP_PENDING, LeadState.COLLECT_FIELDS)
         assert result.allowed

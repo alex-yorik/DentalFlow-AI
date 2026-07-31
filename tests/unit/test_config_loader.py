@@ -64,7 +64,7 @@ class TestLoadClientConfig:
     def test_followup_config(self, demo_client_config: ClientConfig):
         fu = demo_client_config.followup
         assert isinstance(fu, FollowUpConfig)
-        assert fu.demo_delay_seconds > 0
+        assert fu.poll_interval_seconds > 0
         assert fu.max_retries > 0
 
     def test_raises_on_missing_client(self):

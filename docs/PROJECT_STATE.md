@@ -4,17 +4,33 @@
 DentalFlow AI is a reusable AI receptionist and lead automation framework.  
 It is designed as a portfolio-grade commercial MVP that can later be adapted to other businesses by changing client configuration files.
 
+## Phase Status
+
+Current Phase: **Phase 7 — polish and portfolio readiness**
+
+Status: **PLANNING**
+
+Next Action: Define scope of Phase 7 and write the architecture plan.
+
+Current Reviewer: **DeepSeek V4 Pro (Architect)**
+
+Current Developer: **DeepSeek V4 Flash (Developer)**
+
+Current Git Tag: *none — latest merged phase tag TBD*
+
+Last Updated: 2026-07-31
+
 ## Current status
 Completed:
-- Phase 0: project scaffold
-- Phase 1: client config + storage
-- Phase 2: AI layer with structured output
-- Phase 3: business rules, validation, safety, state machine
-- Phase 4: Telegram channel integration
-- Phase 5: CRM and notifications
+- Phase 0: project scaffold — MERGED
+- Phase 1: client config + storage — MERGED
+- Phase 2: AI layer with structured output — MERGED
+- Phase 3: business rules, validation, safety, state machine — MERGED
+- Phase 4: Telegram channel integration — MERGED
+- Phase 5: CRM and notifications — MERGED
+- Phase 6: follow-up engine — MERGED
 
 Next:
-- Phase 6: follow-up engine
 - Phase 7: polish and portfolio readiness
 
 ## Core architecture decisions
@@ -26,13 +42,18 @@ Next:
 - Mock CRM is used for demo and tests.
 - Conversation history is stored as structured summaries, not raw transcripts.
 
+Full decision records: see `docs/ARCHITECTURE_DECISIONS.md`.
+
 ## Files to read first
 1. AGENTS.md
-2. docs/IMPLEMENTATION_PLAN.md
-3. docs/PROJECT_STATE.md
-4. docs/PROJECT_CONVENTIONS.md
-5. clients/demo_dental/
-6. src/
+2. docs/ENGINEERING_PLAYBOOK.md
+3. docs/DEFINITION_OF_DONE.md
+4. docs/PROJECT_STATE.md
+5. docs/PROJECT_CONVENTIONS.md
+6. docs/ARCHITECTURE_DECISIONS.md
+7. docs/BACKLOG.md
+8. clients/demo_dental/
+9. src/
 
 ## Important constraints
 - Do not reintroduce hardcoded business text into Python.
@@ -40,3 +61,4 @@ Next:
 - Do not let the LLM control CRM writes directly.
 - Keep changes small and phase-based.
 - Stop after each phase and wait for approval.
+- After APPROVE, new ideas go to `docs/BACKLOG.md`, not back into the current phase.

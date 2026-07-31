@@ -43,7 +43,7 @@ class FollowUpConfig(BaseModel):
     templates: dict[str, str]
     delay_minutes: int = 60
     max_retries: int = 2
-    demo_delay_seconds: int = 60
+    poll_interval_seconds: int = 30
 
 
 class PromptCollection(BaseModel):
@@ -66,6 +66,7 @@ class AppConfig(BaseModel):
     openai_model: str = "gpt-4o-mini"
     client_name: str = "demo_dental"
     debug: bool = False
+    crm_provider: str = "mock"
     client: ClientConfig
 
 
@@ -127,5 +128,6 @@ def load_config() -> AppConfig:
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         client_name=client_name,
         debug=os.getenv("DEBUG", "").lower() in ("1", "true", "yes"),
+        crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
         client=client,
     )

@@ -18,6 +18,7 @@
     "error_generic": "I'm sorry, I couldn't process your request. Please try again or contact us by phone.",
     "error_out_of_scope": "I'm sorry, I can only answer questions about our dental services. Would you like to know about our treatments or schedule a visit?",
     "error_unsafe": "I'm sorry, I can't provide that information. Please contact the clinic directly for any urgent concerns.",
-    "error_missing_token": "System configuration error. Please contact the administrator."
+    "error_missing_token": "System configuration error. Please contact the administrator.",
+    "followup_complete": "Follow-up completed for {name}\nPhone: {phone}\nService: {service}\nLead did not respond — moved to closed."
   }
 }

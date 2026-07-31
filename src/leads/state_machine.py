@@ -48,6 +48,7 @@ _TRANSITION_TABLE: dict[tuple[LeadState, LeadState], str] = {
     (LeadState.QUALIFYING, LeadState.BLOCKED): "qualifying → blocked: abuse during qualification",
 
     (LeadState.CRM_WRITE, LeadState.CLOSED): "crm_write → closed: lead written",
+    (LeadState.CRM_WRITE, LeadState.FOLLOWUP_PENDING): "crm_write → followup: schedule follow-up",
     (LeadState.CRM_WRITE, LeadState.BLOCKED): "crm_write → blocked: abuse after crm write",
 
     (LeadState.FOLLOWUP_PENDING, LeadState.COLLECT_FIELDS): "followup → collect: user responded",
