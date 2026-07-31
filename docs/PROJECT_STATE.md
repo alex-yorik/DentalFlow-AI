@@ -11,9 +11,9 @@ Completed:
 - Phase 2: AI layer with structured output
 - Phase 3: business rules, validation, safety, state machine
 - Phase 4: Telegram channel integration
+- Phase 5: CRM and notifications
 
 Next:
-- Phase 5: CRM and notifications
 - Phase 6: follow-up engine
 - Phase 7: polish and portfolio readiness
 
@@ -30,8 +30,9 @@ Next:
 1. AGENTS.md
 2. docs/IMPLEMENTATION_PLAN.md
 3. docs/PROJECT_STATE.md
-4. clients/demo_dental/
-5. src/
+4. docs/PROJECT_CONVENTIONS.md
+5. clients/demo_dental/
+6. src/
 
 ## Important constraints
 - Do not reintroduce hardcoded business text into Python.
