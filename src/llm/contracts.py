@@ -39,6 +39,7 @@ class AIOutput(BaseModel):
     schedule_followup: bool = Field(description="Whether to schedule a follow-up")
     escalation_needed: bool = Field(description="Whether to notify a human")
     escalation_reason: Optional[str] = Field(default=None)
+    is_fallback: bool = False
 
 
 class AIInput(BaseModel):

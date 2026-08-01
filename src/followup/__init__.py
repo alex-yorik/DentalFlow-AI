@@ -9,6 +9,7 @@ from telegram import Bot
 
 from src.config.loader import AppConfig, FollowUpConfig
 from src.followup.models import FollowUpTask
+from src.integrations.notifications import notify_staff_followup_complete
 from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
@@ -181,24 +182,6 @@ def _row_to_task(row) -> FollowUpTask:
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
     )
-
-
-async def notify_staff_followup_complete(config: AppConfig, lead: Lead, bot: Bot) -> None:
-    staff_chat_id = config.client.business.staff_chat_id
-    if not staff_chat_id:
-        return
-    template = config.client.business.messages.get("followup_complete", "")
-    if not template:
-        return
-    message = template.format(
-        name=lead.name or "",
-        phone=lead.phone or "",
-        service=lead.service_interest or "",
-    )
-    try:
-        await bot.send_message(chat_id=staff_chat_id, text=message)
-    except Exception as e:
-        logger.error("Failed to send follow-up notification: %s", e)
 
 
 class FollowUpEngine:

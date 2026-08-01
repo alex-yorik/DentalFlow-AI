@@ -60,6 +60,7 @@ def _make_output(**kwargs) -> AIOutput:
         crm_write_allowed=False,
         schedule_followup=False,
         escalation_needed=False,
+        is_fallback=False,
     )
     defaults.update(kwargs)
     return AIOutput(**defaults)
@@ -118,6 +119,7 @@ class TestHandleMessage:
             escalation_needed=True,
             escalation_reason="API error",
             suggested_action=SuggestedAction.CLOSE,
+            is_fallback=True,
         )
 
         await handle_message(mock_update, mock_context)

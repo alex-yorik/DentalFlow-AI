@@ -198,7 +198,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     output = await llm_client.analyze(ai_input)
 
-    if output.escalation_needed and output.confidence == 0.0:
+    if output.escalation_needed and output.is_fallback:
         logger.warning("LLM fallback for chat %s: %s", chat_id, output.escalation_reason)
         await update.message.reply_text(
             config.client.business.messages.get("error_generic", "")

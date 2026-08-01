@@ -8,6 +8,21 @@ from src.leads.models import Lead
 logger = logging.getLogger(__name__)
 
 
+async def notify_staff_followup_complete(config: AppConfig, lead: Lead, bot: Bot) -> None:
+    """Notify staff that follow-up task completed."""
+    staff_chat_id = config.client.business.staff_chat_id
+    if not staff_chat_id:
+        return
+
+    message = f"Follow-up completed for lead {lead.id} (chat {lead.telegram_chat_id})"
+
+    try:
+        await bot.send_message(chat_id=staff_chat_id, text=message)
+        logger.info("Follow-up completion notification sent for lead %s", lead.id)
+    except Exception as e:
+        logger.error("Failed to notify staff about followup completion: %s", e)
+
+
 async def notify_staff(config: AppConfig, lead: Lead, bot: Bot) -> None:
     staff_chat_id = config.client.business.staff_chat_id
     if not staff_chat_id:

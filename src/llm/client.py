@@ -54,4 +54,5 @@ class LLMClient:
             schedule_followup=False,
             escalation_needed=True,
             escalation_reason=reason,
+            is_fallback=True,
         )
