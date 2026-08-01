@@ -127,9 +127,12 @@ _rate_limit: dict[int, deque] = defaultdict(deque)
 
 def _check_rate_limit(chat_id: int) -> bool:
     now = time.monotonic()
+    had_history = chat_id in _rate_limit
     timestamps = _rate_limit[chat_id]
     while timestamps and timestamps[0] < now - _RATE_LIMIT_WINDOW:
         timestamps.popleft()
+    if had_history and not timestamps:
+        del _rate_limit[chat_id]
     if len(timestamps) >= _RATE_LIMIT_MAX:
         return False
     timestamps.append(now)
