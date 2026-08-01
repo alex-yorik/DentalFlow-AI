@@ -96,6 +96,7 @@ class TestLLMClient:
         assert result.confidence == 0.0
         assert result.escalation_needed is True
         assert "API error" in (result.escalation_reason or "")
+        assert result.is_fallback is True
 
     async def test_fallback_on_null_parsed(self):
         mock_message = AsyncMock()
@@ -116,6 +117,7 @@ class TestLLMClient:
         assert result.intent == "off_topic"
         assert result.escalation_needed is True
         assert "null" in (result.escalation_reason or "")
+        assert result.is_fallback is True
 
     async def test_passes_messages_to_api(self):
         mock_parse = AsyncMock(return_value=_make_mock_response(
