@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DentalFlow AI Chat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 20px; }
+  #chat { width: 100%; max-width: 600px; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 80vh; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; line-height: 1.4; }
+  .user { background: #007aff; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .bot { background: #e9e9eb; color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
+  #input-row { display: flex; border-top: 1px solid #e0e0e0; padding: 12px; gap: 8px; }
+  #input { flex: 1; padding: 10px 14px; border: 1px solid #d0d0d0; border-radius: 24px; outline: none; font-size: 14px; }
+  #input:focus { border-color: #007aff; }
+  #send { padding: 10px 20px; background: #007aff; color: #fff; border: none; border-radius: 24px; cursor: pointer; font-size: 14px; }
+  #send:hover { background: #005bbf; }
+  #send:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { color: #d32f2f; text-align: center; padding: 8px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="chat">
+  <div id="messages"></div>
+  <div id="input-row">
+    <input id="input" type="text" placeholder="Type your message..." autofocus>
+    <button id="send">Send</button>
+  </div>
+</div>
+<script>
+  const CHANNEL_ID = localStorage.getItem('web_channel_id') || 'web-' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('web_channel_id', CHANNEL_ID);
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('input');
+  const sendEl = document.getElementById('send');
+  let lastMessageCount = 0;
+
+  function addMessage(text, role) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function pollMessages() {
+    try {
+      const res = await fetch('/api/chat/' + encodeURIComponent(CHANNEL_ID) + '/messages');
+      const data = await res.json();
+      const msgs = data.messages || [];
+      while (lastMessageCount < msgs.length) {
+        addMessage(msgs[lastMessageCount].text, 'bot');
+        lastMessageCount++;
+      }
+    } catch (e) {
+      // ignore polling errors
+    }
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+    sendEl.disabled = true;
+    addMessage(text, 'user');
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: CHANNEL_ID, text: text }),
+      });
+      const data = await res.json();
+      if (data.reply) {
+        addMessage(data.reply, 'bot');
+        lastMessageCount++;
+      }
+    } catch (e) {
+      addMessage('Connection error. Please try again.', 'bot');
+      lastMessageCount++;
+    } finally {
+      sendEl.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  sendEl.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') sendMessage(); });
+  setInterval(pollMessages, 3000);
+</script>
+</body>
+</html>

@@ -82,6 +82,8 @@ class AppConfig(BaseModel):
     client_name: str = "demo_dental"
     debug: bool = False
     crm_provider: str = "mock"
+    web_port: int = 8080
+    web_host: str = "0.0.0.0"
     client: ClientConfig
 
 

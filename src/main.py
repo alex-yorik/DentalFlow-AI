@@ -1,10 +1,15 @@
 import asyncio
 import logging
 import signal
+import threading
+
+import uvicorn
 
 from src.config.loader import load_config
 from src.channels.telegram.bot import create_bot
+from src.channels.web.adapter import router as web_router
 from src.followup import FollowUpEngine
+from src.llm.client import LLMClient
 from src.storage.database import close_connection, init_db
 
 logging.basicConfig(
@@ -13,6 +18,27 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _build_web_app(config):
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app = FastAPI(title="DentalFlow AI Web Channel")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(web_router)
+    app.state.config = config
+    app.state.llm_client = LLMClient(
+        api_key=config.openai_api_key,
+        model=config.openai_model,
+    )
+    return app
 
 
 async def main() -> None:
@@ -28,6 +54,16 @@ async def main() -> None:
     except Exception as e:
         logger.error("Failed to initialize database: %s", e, exc_info=True)
         return
+
+    web_app = _build_web_app(config)
+    web_thread = threading.Thread(
+        target=uvicorn.run,
+        args=(web_app,),
+        kwargs={"host": config.web_host, "port": config.web_port, "log_level": "info"},
+        daemon=True,
+    )
+    web_thread.start()
+    logger.info("Web channel started on http://%s:%s", config.web_host, config.web_port)
 
     try:
         bot = create_bot(config)
