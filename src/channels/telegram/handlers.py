@@ -239,10 +239,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         if transition.allowed:
             apply_transition(lead, next_state)
-
-            if next_state == LeadState.CRM_WRITE:
-                followup_engine = context.bot_data.get("followup_engine")
-                await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
         else:
             logger.warning(
                 "Transition blocked for chat %s: %s → %s — %s",
