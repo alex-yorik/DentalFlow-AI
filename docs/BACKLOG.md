@@ -71,3 +71,11 @@ No idea here is lost — it will be considered in future phases.
 - [ ] Handle hash collisions in channel_id mapping (theoretical)
 - [ ] Add FOLLOWUP_PENDING handling for web channel (if needed)
 
+
+## Phase 9A Follow-up
+
+### Low Priority
+- [ ] Update docker-compose.yml to v3 syntax: mem_limit/cpus → deploy.resources.limits
+- [ ] Add entrypoint script for bind-mount permissions (chmod/chown /data)
+- [ ] Consider alpine base image to reduce size below 200MB
+
