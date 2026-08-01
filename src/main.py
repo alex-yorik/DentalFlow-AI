@@ -22,36 +22,52 @@ async def main() -> None:
         logger.error("TELEGRAM_BOT_TOKEN is not set. Create .env from .env.example")
         return
 
-    await init_db()
-    logger.info("Database initialized")
+    try:
+        await init_db()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.error("Failed to initialize database: %s", e, exc_info=True)
+        return
 
-    bot = create_bot(config)
+    try:
+        bot = create_bot(config)
+    except Exception as e:
+        logger.error("Failed to create bot: %s", e, exc_info=True)
+        return
+
     followup_engine = FollowUpEngine(config, bot.bot)
     bot.bot_data["followup_engine"] = followup_engine
-    await followup_engine.start()
 
-    await bot.initialize()
-    await bot.start()
-    logger.info("Bot started (client: %s)", config.client_name)
-    await bot.updater.start_polling()
+    try:
+        await followup_engine.start()
+    except Exception as e:
+        logger.error("Failed to start followup engine: %s", e, exc_info=True)
+        followup_engine = None
 
-    shutdown_event = asyncio.Event()
-    loop = asyncio.get_running_loop()
+    try:
+        await bot.initialize()
+        await bot.start()
+        logger.info("Bot started (client: %s)", config.client_name)
+        await bot.updater.start_polling()
 
-    def _on_shutdown() -> None:
-        logger.info("Shutdown signal received")
-        shutdown_event.set()
+        shutdown_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
 
-    loop.add_signal_handler(signal.SIGINT, _on_shutdown)
-    loop.add_signal_handler(signal.SIGTERM, _on_shutdown)
+        def _on_shutdown() -> None:
+            logger.info("Shutdown signal received")
+            shutdown_event.set()
 
-    await shutdown_event.wait()
+        loop.add_signal_handler(signal.SIGINT, _on_shutdown)
+        loop.add_signal_handler(signal.SIGTERM, _on_shutdown)
 
-    logger.info("Shutting down...")
-    await followup_engine.stop()
-    await bot.updater.stop()
-    await bot.stop()
-    await bot.shutdown()
+        await shutdown_event.wait()
+    finally:
+        logger.info("Shutting down...")
+        if followup_engine:
+            await followup_engine.stop()
+        await bot.updater.stop()
+        await bot.stop()
+        await bot.shutdown()
 
 
 if __name__ == "__main__":
