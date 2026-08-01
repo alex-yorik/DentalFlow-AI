@@ -58,3 +58,16 @@ No idea here is lost — it will be considered in future phases.
 - [ ] **4.3**: Fix `LLMClient._fallback()` intent semantics
 - [ ] **4.4**: Move `temperature=0.1` to AppConfig
 
+
+## Phase 8B Follow-up
+
+### Medium Priority
+- [ ] Clean up _response_store in web/adapter.py (memory leak for long-running server)
+  - Similar to _rate_limit cleanup in 7D.2.2
+  - Add TTL-based cleanup or periodic purge
+
+### Low Priority
+- [ ] Narrow CORS allow_origins from ["*"] to specific domains
+- [ ] Handle hash collisions in channel_id mapping (theoretical)
+- [ ] Add FOLLOWUP_PENDING handling for web channel (if needed)
+
