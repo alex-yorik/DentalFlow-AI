@@ -5,7 +5,7 @@ import signal
 from src.config.loader import load_config
 from src.channels.telegram.bot import create_bot
 from src.followup import FollowUpEngine
-from src.storage.database import init_db
+from src.storage.database import close_connection, init_db
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -68,6 +68,7 @@ async def main() -> None:
         await bot.updater.stop()
         await bot.stop()
         await bot.shutdown()
+        await close_connection()
 
 
 if __name__ == "__main__":
