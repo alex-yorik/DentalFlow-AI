@@ -3,6 +3,8 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import aiosqlite
+
 from telegram import Bot
 
 from src.config.loader import AppConfig, FollowUpConfig
@@ -11,6 +13,7 @@ from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
 from src.storage import database
+from src.storage.database import StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +21,11 @@ _RESCHEDULE_DELAY = timedelta(minutes=1)
 
 
 async def _insert_task(task: FollowUpTask) -> None:
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        raise
+
     try:
         await conn.execute(
             """INSERT INTO followup_tasks
@@ -32,13 +39,20 @@ async def _insert_task(task: FollowUpTask) -> None:
             ),
         )
         await conn.commit()
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _insert_task(id=%s, lead_id=%s) failed: %s", task.id, task.lead_id, e)
+        raise StorageError(f"_insert_task failed for task {task.id}: {e}") from e
     finally:
         await conn.close()
 
 
 async def _update_task(task: FollowUpTask) -> None:
     task.updated_at = datetime.now(timezone.utc)
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        raise
+
     try:
         await conn.execute(
             """UPDATE followup_tasks SET
@@ -50,39 +64,58 @@ async def _update_task(task: FollowUpTask) -> None:
             ),
         )
         await conn.commit()
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _update_task(id=%s, lead_id=%s) failed: %s", task.id, task.lead_id, e)
+        raise StorageError(f"_update_task failed for task {task.id}: {e}") from e
     finally:
         await conn.close()
 
 
 async def _update_task_status(task_id: str, status: str) -> None:
     now = datetime.now(timezone.utc)
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        return
+
     try:
         await conn.execute(
             "UPDATE followup_tasks SET status=?, updated_at=? WHERE id=?",
             (status, now.isoformat(), task_id),
         )
         await conn.commit()
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _update_task_status(id=%s) failed: %s", task_id, e)
     finally:
         await conn.close()
 
 
 async def _cancel_tasks_by_lead(lead_id: str) -> None:
     now = datetime.now(timezone.utc)
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        return
+
     try:
         await conn.execute(
             "UPDATE followup_tasks SET status='cancelled', updated_at=? WHERE lead_id=? AND status='pending'",
             (now.isoformat(), lead_id),
         )
         await conn.commit()
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _cancel_tasks_by_lead(lead_id=%s) failed: %s", lead_id, e)
     finally:
         await conn.close()
 
 
 async def _acquire_task(task_id: str) -> bool:
     now = datetime.now(timezone.utc)
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        return False
+
     try:
         cursor = await conn.execute(
             "UPDATE followup_tasks SET status='running', updated_at=? WHERE id=? AND status='pending'",
@@ -90,12 +123,19 @@ async def _acquire_task(task_id: str) -> bool:
         )
         await conn.commit()
         return cursor.rowcount > 0
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _acquire_task(id=%s) failed: %s", task_id, e)
+        return False
     finally:
         await conn.close()
 
 
 async def _get_due_tasks(now: datetime) -> list[FollowUpTask]:
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        return []
+
     try:
         cursor = await conn.execute(
             "SELECT * FROM followup_tasks WHERE status='pending' AND next_run_at <= ?",
@@ -103,18 +143,28 @@ async def _get_due_tasks(now: datetime) -> list[FollowUpTask]:
         )
         rows = await cursor.fetchall()
         return [_row_to_task(r) for r in rows]
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _get_due_tasks failed: %s", e)
+        return []
     finally:
         await conn.close()
 
 
 async def _get_pending_tasks() -> list[FollowUpTask]:
-    conn = await database.get_connection()
+    try:
+        conn = await database.get_connection()
+    except StorageError:
+        return []
+
     try:
         cursor = await conn.execute(
             "SELECT * FROM followup_tasks WHERE status='pending'",
         )
         rows = await cursor.fetchall()
         return [_row_to_task(r) for r in rows]
+    except (aiosqlite.Error, StorageError) as e:
+        logger.error("StorageError: _get_pending_tasks failed: %s", e)
+        return []
     finally:
         await conn.close()
 
