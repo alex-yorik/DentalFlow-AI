@@ -150,109 +150,118 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     llm_client: LLMClient = context.bot_data["llm_client"]
     chat_id = update.effective_chat.id
 
-    user_text = _sanitize_input(update.message.text)
-    if user_text is None:
-        await update.message.reply_text(
-            config.client.business.messages.get("error_generic", "")
-        )
-        return
+    try:
+        user_text = _sanitize_input(update.message.text)
+        if user_text is None:
+            await update.message.reply_text(
+                config.client.business.messages.get("error_generic", "")
+            )
+            return
 
-    if not _check_rate_limit(chat_id):
-        logger.warning("Rate limit hit for chat %s", chat_id)
-        await update.message.reply_text(_RATE_LIMIT_REPLY)
-        return
+        if not _check_rate_limit(chat_id):
+            logger.warning("Rate limit hit for chat %s", chat_id)
+            await update.message.reply_text(_RATE_LIMIT_REPLY)
+            return
 
-    lead = await get_lead_by_chat_id(chat_id)
-
-    if lead and lead.state == LeadState.BLOCKED:
-        await update.message.reply_text(
-            config.client.business.messages.get("error_unsafe", "")
-        )
-        return
-
-    if lead and lead.state == LeadState.FOLLOWUP_PENDING:
-        followup_engine = context.bot_data.get("followup_engine")
-        if followup_engine:
-            await followup_engine.cancel_followup(lead.id)
-        now = datetime.now(timezone.utc)
-        conn = await database.get_connection()
-        await conn.execute(
-            "UPDATE leads SET followup_task_id = NULL, updated_at = ? WHERE id = ?",
-            (now.isoformat(), lead.id),
-        )
-        await conn.commit()
-        await conn.close()
         lead = await get_lead_by_chat_id(chat_id)
 
-    if lead and lead.state == LeadState.CLOSED:
-        lead = None
+        if lead and lead.state == LeadState.BLOCKED:
+            await update.message.reply_text(
+                config.client.business.messages.get("error_unsafe", "")
+            )
+            return
 
-    if lead is None:
-        lead = await create_lead(chat_id)
+        if lead and lead.state == LeadState.FOLLOWUP_PENDING:
+            followup_engine = context.bot_data.get("followup_engine")
+            if followup_engine:
+                await followup_engine.cancel_followup(lead.id)
+            now = datetime.now(timezone.utc)
+            conn = await database.get_connection()
+            await conn.execute(
+                "UPDATE leads SET followup_task_id = NULL, updated_at = ? WHERE id = ?",
+                (now.isoformat(), lead.id),
+            )
+            await conn.commit()
+            await conn.close()
+            lead = await get_lead_by_chat_id(chat_id)
 
-    ai_input = AIInput(
-        system_prompt=config.client.prompts.system,
-        user_message=user_text,
-        conversation_context=_build_context(lead),
-    )
+        if lead and lead.state == LeadState.CLOSED:
+            lead = None
 
-    output = await llm_client.analyze(ai_input)
+        if lead is None:
+            lead = await create_lead(chat_id)
 
-    if output.escalation_needed and output.is_fallback:
-        logger.warning("LLM fallback for chat %s: %s", chat_id, output.escalation_reason)
-        await update.message.reply_text(
-            config.client.business.messages.get("error_generic", "")
+        ai_input = AIInput(
+            system_prompt=config.client.prompts.system,
+            user_message=user_text,
+            conversation_context=_build_context(lead),
         )
-        return
 
-    validation = validate_ai_output(output, config.client.rules)
-    if not validation.valid:
-        logger.warning("Validation failed for chat %s: %s", chat_id, validation.reason)
-        await update.message.reply_text(
-            config.client.business.messages.get("error_out_of_scope", "")
-        )
-        return
+        output = await llm_client.analyze(ai_input)
 
-    verdict = check_safety(output, config.client.rules, lead)
-    if not verdict.allowed:
-        logger.warning("Safety check failed for chat %s: %s", chat_id, verdict.blocked_reason)
-        await update.message.reply_text(
-            config.client.business.messages.get("error_unsafe", "")
-        )
-        if verdict.escalate:
-            t = validate_transition(lead.state, LeadState.BLOCKED)
+        if output.escalation_needed and output.is_fallback:
+            logger.warning("LLM fallback for chat %s: %s", chat_id, output.escalation_reason)
+            await update.message.reply_text(
+                config.client.business.messages.get("error_generic", "")
+            )
+            return
+
+        validation = validate_ai_output(output, config.client.rules)
+        if not validation.valid:
+            logger.warning("Validation failed for chat %s: %s", chat_id, validation.reason)
+            await update.message.reply_text(
+                config.client.business.messages.get("error_out_of_scope", "")
+            )
+            return
+
+        verdict = check_safety(output, config.client.rules, lead)
+        if not verdict.allowed:
+            logger.warning("Safety check failed for chat %s: %s", chat_id, verdict.blocked_reason)
+            await update.message.reply_text(
+                config.client.business.messages.get("error_unsafe", "")
+            )
+            if verdict.escalate:
+                t = validate_transition(lead.state, LeadState.BLOCKED)
+                if t.allowed:
+                    apply_transition(lead, LeadState.BLOCKED)
+            await update_lead(lead)
+            return
+
+        _apply_extracted_fields(lead, output, user_text, output.reply_text)
+
+        if output.is_lead and lead.state == LeadState.NEW:
+            t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)
             if t.allowed:
-                apply_transition(lead, LeadState.BLOCKED)
-        await update_lead(lead)
-        return
+                apply_transition(lead, LeadState.COLLECT_FIELDS)
 
-    _apply_extracted_fields(lead, output, user_text, output.reply_text)
+        next_state = suggest_state(output.suggested_action)
+        transition = validate_transition(lead.state, next_state, lead, config.client.qualification)
 
-    if output.is_lead and lead.state == LeadState.NEW:
-        t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)
-        if t.allowed:
-            apply_transition(lead, LeadState.COLLECT_FIELDS)
+        if transition.allowed:
+            apply_transition(lead, next_state)
 
-    next_state = suggest_state(output.suggested_action)
-    transition = validate_transition(lead.state, next_state, lead, config.client.qualification)
+            if next_state == LeadState.CRM_WRITE:
+                followup_engine = context.bot_data.get("followup_engine")
+                await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
+        else:
+            logger.warning(
+                "Transition blocked for chat %s: %s → %s — %s",
+                chat_id, lead.state.value, next_state.value, transition.reason,
+            )
 
-    if transition.allowed:
-        apply_transition(lead, next_state)
+        _try_advance_lead(lead, config.client.qualification)
 
-        if next_state == LeadState.CRM_WRITE:
+        if lead.state == LeadState.CRM_WRITE:
             followup_engine = context.bot_data.get("followup_engine")
             await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
-    else:
-        logger.warning(
-            "Transition blocked for chat %s: %s → %s — %s",
-            chat_id, lead.state.value, next_state.value, transition.reason,
-        )
 
-    _try_advance_lead(lead, config.client.qualification)
-
-    if lead.state == LeadState.CRM_WRITE:
-        followup_engine = context.bot_data.get("followup_engine")
-        await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
-
-    await update_lead(lead)
-    await update.message.reply_text(output.reply_text)
+        await update_lead(lead)
+        await update.message.reply_text(output.reply_text)
+    except Exception as e:
+        logger.error("Unhandled error in handle_message for chat %s: %s", chat_id, e, exc_info=True)
+        try:
+            await update.message.reply_text(
+                config.client.business.messages.get("error_generic", "")
+            )
+        except Exception:
+            pass
