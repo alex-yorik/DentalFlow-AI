@@ -148,3 +148,19 @@ class TestSafetyCheck:
         )
         assert not verdict.allowed
         assert verdict.escalate
+
+    def test_word_boundary_cure_does_not_match_curettage(self):
+        verdict = check_safety(_output(reply_text="I need a curettage procedure"), RULES)
+        assert verdict.allowed
+
+    def test_word_boundary_cure_matches_standalone_cure(self):
+        verdict = check_safety(_output(reply_text="Can you cure my tooth?"), RULES)
+        assert not verdict.allowed
+
+    def test_word_boundary_free_does_not_match_freelance(self):
+        verdict = check_safety(_output(reply_text="I'm a freelance dentist"), RULES)
+        assert verdict.allowed
+
+    def test_word_boundary_free_matches_standalone_free(self):
+        verdict = check_safety(_output(reply_text="Is this treatment free?"), RULES)
+        assert not verdict.allowed

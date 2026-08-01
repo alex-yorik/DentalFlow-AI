@@ -1,3 +1,5 @@
+import re
+
 from src.llm.contracts import AIOutput, Intent
 from src.config.loader import RulesConfig
 
@@ -18,18 +20,21 @@ def _build_refusal_verdict(reason: str, lead, rules: RulesConfig) -> SafetyVerdi
     return SafetyVerdict(allowed=False, blocked_reason=reason, escalate=True)
 
 
+def _phrase_in_text(phrase: str, text: str) -> bool:
+    pattern = re.compile(r'\b' + re.escape(phrase) + r'\b', re.IGNORECASE)
+    return bool(pattern.search(text))
+
+
 def check_safety(output: AIOutput, rules: RulesConfig, lead=None) -> SafetyVerdict:
-    reply_lower = output.reply_text.lower()
     for phrase in rules.blocked_phrases:
-        if phrase in reply_lower:
+        if _phrase_in_text(phrase, output.reply_text):
             return _build_refusal_verdict(
                 f"reply contains blocked phrase: '{phrase}'", lead, rules,
             )
 
     for field in output.extracted_fields:
-        field_lower = field.value.lower()
         for phrase in rules.blocked_phrases:
-            if phrase in field_lower:
+            if _phrase_in_text(phrase, field.value):
                 return _build_refusal_verdict(
                     f"extracted field '{field.field_name}' contains blocked phrase: '{phrase}'", lead, rules,
                 )
