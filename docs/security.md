@@ -39,7 +39,7 @@ cure, heal, natural remedy
 
 These prevent the AI from discussing pricing, guarantees, or medical treatment.
 
-`max_refusal_count` is defined in `RulesConfig` (default: 3) but the refusal counter is **not yet implemented** in the safety check. This is a known gap.
+`max_refusal_count` is defined in `RulesConfig` (default: 3) and is enforced by `check_safety()` — each blocked response increments `lead.refusal_count`, and when the threshold is reached the lead enters `BLOCKED` state with `escalate=True`.
 
 ---
 
@@ -66,7 +66,7 @@ The system uses a layered defence — no single mechanism is relied upon:
 4. **System prompt** — located in `clients/<name>/prompts/system.md`, defines the AI's role as a dental receptionist.
 5. **Fallback** — any OpenAI API exception returns `intent="off_topic"`, `confidence=0.0`, `escalation_needed=True`.
 
-**Known gap**: user input is passed directly to the LLM without sanitization or rate limiting. Protection relies on the output-side checks described above.
+**Known gap**: user-facing protections are present (rate limiting, input sanitization, output validation, refusal counter) but security-specific test coverage is missing (see table below).
 
 ---
 
@@ -129,7 +129,8 @@ The lead state machine (`src/leads/state_machine.py`) enforces:
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
-| No rate limiting on user messages | A single user can flood the AI, incurring OpenAI costs | Medium |
-| No input sanitization before LLM call | User can attempt prompt injection via message text | Medium |
-| `max_refusal_count` not enforced in code | Safety config declares 3 refusals, but no counter tracks them | Low |
+| Rate limiting implemented: 10 messages per 60 seconds per chat_id (in-memory deque, not persisted across restarts) | A single user can flood the AI, incurring OpenAI costs | Medium |
+| Input sanitization implemented: strip + trim to 2000 chars in `_sanitize_input()` | User can attempt prompt injection via message text | Medium |
+| `max_refusal_count` enforced: `check_safety()` increments `lead.refusal_count` and escalates at threshold | Safety config declares 3 refusals, but no counter tracks them | Low |
+| In-memory rate limit dict grows unbounded (no cleanup for stale chat_ids) — acceptable for MVP, backlog for production | Stale entries consume memory over long-running instances | Low |
 | No coverage of security paths in tests | Safety and validation logic lacks dedicated security test scenarios | Low |
