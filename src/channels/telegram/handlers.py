@@ -6,124 +6,28 @@ from datetime import datetime, timezone
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from src.config.loader import AppConfig, QualificationConfig
-from src.llm.contracts import AIInput
+from src.config.loader import AppConfig
 from src.llm.client import LLMClient
-from src.rules.validator import validate_ai_output
-from src.rules.safety import check_safety
-from src.rules.qualification import calculate_score
-from src.leads.models import Lead, LeadState, PHONE_PATTERN, EMAIL_PATTERN
-from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
-from src.leads.state_machine import suggest_state, validate_transition, apply_transition
-from src.integrations.crm import get_provider
-from src.integrations.notifications import notify_staff
+from src.leads.models import Lead, LeadState
+from src.leads.repository import create_lead, get_lead_by_chat_id
+from src.core.message_processor import process_message, sanitize_input
+from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.followup import FollowUpEngine
 from src.storage import database
+from src.integrations.crm import get_provider  # re-export for test patches
 
 logger = logging.getLogger(__name__)
-
-_MAX_INPUT_LENGTH = 2000
 
 _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 60.0
 
-_field_map = {
-    "name": "name",
-    "phone": "phone",
-    "email": "email",
-    "service": "service_interest",
-    "urgency": "urgency",
-    "preferred_time": "preferred_time",
-}
 
+class TelegramOutgoingAdapter:
+    def __init__(self, update: Update) -> None:
+        self._update = update
 
-def _sanitize_input(text: str | None) -> str | None:
-    if not text:
-        return None
-    stripped = text.strip()
-    if not stripped:
-        return None
-    return stripped[:_MAX_INPUT_LENGTH]
-
-
-def _build_context(lead: Lead) -> str:
-    known = []
-    for src, dst in _field_map.items():
-        val = getattr(lead, dst, None)
-        if val:
-            known.append(f"{src}={val}")
-    parts = [f"State: {lead.state.value}"]
-    if known:
-        parts.append(f"Known: {', '.join(known)}")
-    if lead.conversation_summary:
-        parts.append(f"Summary: {lead.conversation_summary}")
-    return "; ".join(parts)
-
-
-def _apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: str) -> None:
-    for field in output.extracted_fields:
-        if field.confidence < 0.5:
-            continue
-        lead_field = _field_map.get(field.field_name)
-        if lead_field and getattr(lead, lead_field, None) is None:
-            if field.field_name == 'phone' and not PHONE_PATTERN.match(field.value):
-                logger.warning(f"LLM extracted invalid phone format: {field.value}")
-            elif field.field_name == 'email' and not EMAIL_PATTERN.match(field.value):
-                logger.warning(f"LLM extracted invalid email format: {field.value}")
-            setattr(lead, lead_field, field.value)
-
-    new_entry = f"User asked about {output.intent.value}"
-    prev = lead.conversation_summary
-    lead.conversation_summary = f"{prev}; {new_entry}" if prev else new_entry
-    if lead.conversation_summary:
-        lead.conversation_summary = lead.conversation_summary[:500]
-
-
-def _try_advance_lead(lead: Lead, qual_config: QualificationConfig) -> None:
-    if lead.state == LeadState.COLLECT_FIELDS:
-        if not all(getattr(lead, f, None) for f in qual_config.critical_fields):
-            return
-
-        t = validate_transition(LeadState.COLLECT_FIELDS, LeadState.QUALIFYING, lead, qual_config)
-        if not t.allowed:
-            return
-
-        apply_transition(lead, LeadState.QUALIFYING)
-
-    if lead.state == LeadState.QUALIFYING:
-        qual = calculate_score(lead, qual_config)
-        lead.qualification_score = qual.score
-
-        t = validate_transition(LeadState.QUALIFYING, LeadState.CRM_WRITE, lead, qual_config)
-        if t.allowed:
-            apply_transition(lead, LeadState.CRM_WRITE)
-
-
-async def _write_to_crm(lead: Lead, config: AppConfig, bot, schedule_followup: bool = False, followup_engine: FollowUpEngine | None = None) -> None:
-    if lead.crm_contact_id:
-        return
-    crm = get_provider(config.crm_provider)
-    try:
-        contact_id = await crm.create_contact(lead)
-        lead.crm_contact_id = contact_id
-        lead_id = await crm.create_lead(contact_id, lead)
-        await crm.add_note(lead_id, f"Lead from Telegram: {lead.conversation_summary[:200]}")
-        await crm.update_stage(lead_id, "new")
-        await notify_staff(config, lead, bot)
-
-        if schedule_followup and followup_engine:
-            t = validate_transition(LeadState.CRM_WRITE, LeadState.FOLLOWUP_PENDING, lead, config.client.qualification)
-            if t.allowed:
-                apply_transition(lead, LeadState.FOLLOWUP_PENDING)
-                await followup_engine.schedule_followup(lead)
-            else:
-                apply_transition(lead, LeadState.CLOSED)
-        else:
-            apply_transition(lead, LeadState.CLOSED)
-    except Exception as e:
-        logger.error("CRM write failed for lead %s (chat %s): %s", lead.id, lead.telegram_chat_id, e)
-        lead.crm_contact_id = None
-        apply_transition(lead, LeadState.COLLECT_FIELDS)
+    async def send_message(self, channel_user_id: str, text: str) -> None:
+        await self._update.message.reply_text(text)
 
 
 _rate_limit: dict[int, deque] = defaultdict(deque)
@@ -158,7 +62,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     chat_id = update.effective_chat.id
 
     try:
-        user_text = _sanitize_input(update.message.text)
+        user_text = sanitize_input(update.message.text)
         if user_text is None:
             await update.message.reply_text(
                 config.client.business.messages.get("error_generic", "")
@@ -198,68 +102,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if lead is None:
             lead = await create_lead(chat_id)
 
-        ai_input = AIInput(
-            system_prompt=config.client.prompts.system,
-            user_message=user_text,
-            conversation_context=_build_context(lead),
+        msg = IncomingMessage(channel_user_id=str(chat_id), text=user_text)
+        outgoing = TelegramOutgoingAdapter(update)
+        followup_engine = context.bot_data.get("followup_engine")
+
+        await process_message(
+            msg=msg,
+            outgoing=outgoing,
+            lead=lead,
+            config=config,
+            llm_client=llm_client,
+            followup_engine=followup_engine,
+            bot_for_notifications=context.bot,
         )
-
-        output = await llm_client.analyze(ai_input)
-
-        if output.escalation_needed and output.is_fallback:
-            logger.warning("LLM fallback for chat %s: %s", chat_id, output.escalation_reason)
-            await update.message.reply_text(
-                config.client.business.messages.get("error_generic", "")
-            )
-            return
-
-        validation = validate_ai_output(output, config.client.rules)
-        if not validation.valid:
-            logger.warning("Validation failed for chat %s: %s", chat_id, validation.reason)
-            await update.message.reply_text(
-                config.client.business.messages.get("error_out_of_scope", "")
-            )
-            return
-
-        verdict = check_safety(output, config.client.rules, lead)
-        if not verdict.allowed:
-            logger.warning("Safety check failed for chat %s: %s", chat_id, verdict.blocked_reason)
-            await update.message.reply_text(
-                config.client.business.messages.get("error_unsafe", "")
-            )
-            if verdict.escalate:
-                t = validate_transition(lead.state, LeadState.BLOCKED)
-                if t.allowed:
-                    apply_transition(lead, LeadState.BLOCKED)
-            await update_lead(lead)
-            return
-
-        _apply_extracted_fields(lead, output, user_text, output.reply_text)
-
-        if output.is_lead and lead.state == LeadState.NEW:
-            t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)
-            if t.allowed:
-                apply_transition(lead, LeadState.COLLECT_FIELDS)
-
-        next_state = suggest_state(output.suggested_action)
-        transition = validate_transition(lead.state, next_state, lead, config.client.qualification)
-
-        if transition.allowed:
-            apply_transition(lead, next_state)
-        else:
-            logger.warning(
-                "Transition blocked for chat %s: %s → %s — %s",
-                chat_id, lead.state.value, next_state.value, transition.reason,
-            )
-
-        _try_advance_lead(lead, config.client.qualification)
-
-        if lead.state == LeadState.CRM_WRITE:
-            followup_engine = context.bot_data.get("followup_engine")
-            await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
-
-        await update_lead(lead)
-        await update.message.reply_text(output.reply_text)
     except Exception as e:
         logger.error("Unhandled error in handle_message for chat %s: %s", chat_id, e, exc_info=True)
         try:

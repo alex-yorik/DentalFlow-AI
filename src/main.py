@@ -5,49 +5,17 @@ import threading
 
 import uvicorn
 
-from src.config.loader import load_config
+from src.bootstrap import bootstrap
 from src.channels.telegram.bot import create_bot
-from src.channels.web.adapter import router as web_router
+from src.entrypoints.web import _build_web_app
 from src.followup import FollowUpEngine
-from src.llm.client import LLMClient
 from src.storage.database import close_connection, init_db
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
 
 logger = logging.getLogger(__name__)
 
 
-def _build_web_app(config):
-    from fastapi import FastAPI
-    from fastapi.middleware.cors import CORSMiddleware
-
-    app = FastAPI(title="DentalFlow AI Web Channel")
-
-    @app.get("/health")
-    async def health():
-        return {"status": "ok", "service": "dentalflow"}
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    app.include_router(web_router)
-    app.state.config = config
-    app.state.llm_client = LLMClient(
-        api_key=config.openai_api_key,
-        model=config.openai_model,
-    )
-    return app
-
-
 async def main() -> None:
-    config = load_config()
+    config = bootstrap()["config"]
 
     if not config.telegram_bot_token:
         logger.error("TELEGRAM_BOT_TOKEN is not set. Create .env from .env.example")

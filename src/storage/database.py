@@ -55,6 +55,11 @@ async def close_connection() -> None:
 
 async def init_db() -> None:
     conn = await get_connection()
-    from src.storage.migrations import SCHEMA
+    from src.storage.migrations import SCHEMA, MIGRATIONS
     await conn.executescript(SCHEMA)
+    for migration in MIGRATIONS:
+        try:
+            await conn.execute(migration)
+        except Exception:
+            pass
     await conn.commit()

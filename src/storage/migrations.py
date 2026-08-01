@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS leads (
     urgency TEXT,
     preferred_time TEXT,
     source TEXT NOT NULL DEFAULT 'telegram',
+    channel_type TEXT NOT NULL DEFAULT 'telegram',
     qualification_score INTEGER NOT NULL DEFAULT 0,
     conversation_summary TEXT NOT NULL DEFAULT '',
     opt_in_consent INTEGER NOT NULL DEFAULT 0,
@@ -40,3 +41,7 @@ CREATE TABLE IF NOT EXISTS followup_tasks (
 CREATE INDEX IF NOT EXISTS idx_followup_tasks_status ON followup_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_followup_tasks_lead ON followup_tasks(lead_id);
 """
+
+MIGRATIONS = [
+    "ALTER TABLE leads ADD COLUMN channel_type TEXT NOT NULL DEFAULT 'telegram';",
+]

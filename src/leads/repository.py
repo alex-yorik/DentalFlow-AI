@@ -25,6 +25,7 @@ def _row_to_lead(row) -> Lead:
         urgency=row["urgency"],
         preferred_time=row["preferred_time"],
         source=row["source"],
+        channel_type=row["channel_type"],
         qualification_score=row["qualification_score"],
         conversation_summary=row["conversation_summary"],
         opt_in_consent=bool(row["opt_in_consent"]),
@@ -37,12 +38,13 @@ def _row_to_lead(row) -> Lead:
     )
 
 
-async def create_lead(telegram_chat_id: int, source: str = "telegram") -> Lead:
+async def create_lead(telegram_chat_id: int, source: str = "telegram", channel_type: str = "telegram") -> Lead:
     now = datetime.now(timezone.utc)
     lead = Lead(
         id=str(uuid.uuid4()),
         telegram_chat_id=telegram_chat_id,
         source=source,
+        channel_type=channel_type,
         created_at=now,
         updated_at=now,
     )
@@ -54,14 +56,14 @@ async def create_lead(telegram_chat_id: int, source: str = "telegram") -> Lead:
     try:
         await conn.execute(
             """INSERT INTO leads
-               (id, telegram_chat_id, state, source,
+               (id, telegram_chat_id, state, source, channel_type,
                 opt_in_consent, internal_tags,
                 qualification_score, conversation_summary,
                 refusal_count,
                 created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                lead.id, lead.telegram_chat_id, lead.state.value, lead.source,
+                lead.id, lead.telegram_chat_id, lead.state.value, lead.source, lead.channel_type,
                 1 if lead.opt_in_consent else 0,
                 json.dumps(lead.internal_tags),
                 lead.qualification_score, lead.conversation_summary,
@@ -111,7 +113,7 @@ async def update_lead(lead: Lead) -> None:
         await conn.execute(
             """UPDATE leads SET
                state=?, name=?, phone=?, email=?, service_interest=?,
-               intent=?, urgency=?, preferred_time=?, source=?,
+               intent=?, urgency=?, preferred_time=?, source=?, channel_type=?,
                qualification_score=?, conversation_summary=?,
                opt_in_consent=?, internal_tags=?, crm_contact_id=?,
                followup_task_id=?, refusal_count=?, updated_at=?
@@ -119,8 +121,8 @@ async def update_lead(lead: Lead) -> None:
             (
                 lead.state.value, lead.name, lead.phone, lead.email,
                 lead.service_interest, lead.intent, lead.urgency,
-                lead.preferred_time, lead.source, lead.qualification_score,
-                lead.conversation_summary,
+                lead.preferred_time, lead.source, lead.channel_type,
+                lead.qualification_score, lead.conversation_summary,
                 1 if lead.opt_in_consent else 0,
                 json.dumps(lead.internal_tags),
                 lead.crm_contact_id, lead.followup_task_id,

@@ -35,6 +35,7 @@ class Lead(BaseModel):
     urgency: Optional[str] = None
     preferred_time: Optional[str] = None
     source: str = "telegram"
+    channel_type: str = "telegram"
     qualification_score: int = 0
     conversation_summary: str = ""
     opt_in_consent: bool = False
