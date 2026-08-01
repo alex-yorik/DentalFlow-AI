@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BusinessInfo(BaseModel):
@@ -33,9 +33,24 @@ class RulesConfig(BaseModel):
     max_refusal_count: int = 3
 
 
+class ScoreRules(BaseModel):
+    has_name: int = 0
+    has_phone: int = 0
+    has_email: int = 0
+    has_service_interest: int = 0
+    has_preferred_time: int = 0
+    intent_is_new_appointment: int = 0
+    urgency_is_urgent: int = 0
+
+    model_config = ConfigDict(extra='forbid')
+
+    def __contains__(self, item: str) -> bool:
+        return item in type(self).model_fields
+
+
 class QualificationConfig(BaseModel):
     critical_fields: list[str]
-    score_rules: dict[str, Any]
+    score_rules: ScoreRules
     crm_write_threshold: int
 
 

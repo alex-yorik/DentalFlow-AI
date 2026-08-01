@@ -14,33 +14,33 @@ def calculate_score(lead: Lead, config: QualificationConfig) -> QualificationRes
     breakdown: dict[str, int] = {}
     rules = config.score_rules
 
-    if lead.name and lead.name.strip() and (rule := rules.get("has_name")):
-        score += rule
-        breakdown["has_name"] = rule
+    if lead.name and lead.name.strip() and rules.has_name:
+        score += rules.has_name
+        breakdown["has_name"] = rules.has_name
 
-    if lead.phone and lead.phone.strip() and (rule := rules.get("has_phone")):
-        score += rule
-        breakdown["has_phone"] = rule
+    if lead.phone and lead.phone.strip() and rules.has_phone:
+        score += rules.has_phone
+        breakdown["has_phone"] = rules.has_phone
 
-    if lead.email and lead.email.strip() and (rule := rules.get("has_email")):
-        score += rule
-        breakdown["has_email"] = rule
+    if lead.email and lead.email.strip() and rules.has_email:
+        score += rules.has_email
+        breakdown["has_email"] = rules.has_email
 
-    if lead.service_interest and lead.service_interest.strip() and (rule := rules.get("has_service_interest")):
-        score += rule
-        breakdown["has_service_interest"] = rule
+    if lead.service_interest and lead.service_interest.strip() and rules.has_service_interest:
+        score += rules.has_service_interest
+        breakdown["has_service_interest"] = rules.has_service_interest
 
-    if lead.preferred_time and lead.preferred_time.strip() and (rule := rules.get("has_preferred_time")):
-        score += rule
-        breakdown["has_preferred_time"] = rule
+    if lead.preferred_time and lead.preferred_time.strip() and rules.has_preferred_time:
+        score += rules.has_preferred_time
+        breakdown["has_preferred_time"] = rules.has_preferred_time
 
-    if lead.intent and lead.intent == "new_appointment" and (rule := rules.get("intent_is_new_appointment")):
-        score += rule
-        breakdown["intent_is_new_appointment"] = rule
+    if lead.intent and lead.intent == "new_appointment" and rules.intent_is_new_appointment:
+        score += rules.intent_is_new_appointment
+        breakdown["intent_is_new_appointment"] = rules.intent_is_new_appointment
 
-    if lead.urgency and lead.urgency == "urgent" and (rule := rules.get("urgency_is_urgent")):
-        score += rule
-        breakdown["urgency_is_urgent"] = rule
+    if lead.urgency and lead.urgency == "urgent" and rules.urgency_is_urgent:
+        score += rules.urgency_is_urgent
+        breakdown["urgency_is_urgent"] = rules.urgency_is_urgent
 
     return QualificationResult(
         qualified=score >= config.crm_write_threshold,
