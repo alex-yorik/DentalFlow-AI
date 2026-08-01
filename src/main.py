@@ -25,6 +25,11 @@ def _build_web_app(config):
     from fastapi.middleware.cors import CORSMiddleware
 
     app = FastAPI(title="DentalFlow AI Web Channel")
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok", "service": "dentalflow"}
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

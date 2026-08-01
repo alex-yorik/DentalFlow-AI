@@ -5,3 +5,7 @@ __pycache__/
 .gitignore
 *.md
 data/
+tests/
+.pytest_cache/
+.github/
+docs/

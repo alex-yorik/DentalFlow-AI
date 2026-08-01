@@ -146,5 +146,6 @@ def load_config() -> AppConfig:
         client_name=client_name,
         debug=os.getenv("DEBUG", "").lower() in ("1", "true", "yes"),
         crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
+        web_port=int(os.getenv("DENTALFLOW_PORT", "8080")),
         client=client,
     )
