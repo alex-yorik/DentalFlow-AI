@@ -86,3 +86,29 @@ Flash MUST NOT output:
 - Git diff summaries
 
 Maximum handoff length: 20 lines.
+
+## PROMPT FOR FLASH Format (CRITICAL)
+
+When generating PROMPT FOR FLASH, Planner MUST keep it SHORT:
+
+**Maximum length: 25-30 lines**
+
+**Required sections:**
+- ROLE: developer
+- PHASE: [phase name]
+- Allowed Files: [list, max 6]
+- Goal: [1 sentence]
+- DoD: [3-5 bullet points]
+- Rules: [2-3 critical constraints only]
+- Start → py_compile → pytest → PROMPT FOR PRO QA
+
+**FORBIDDEN:**
+- Code examples (Flash will figure it out)
+- Detailed analysis of options
+- Step-by-step implementation instructions
+- "Key rules" sections with 8+ items
+- Warnings like "ВНИМАНИЕ", "СТОП"
+
+**Rationale:** Flash is cheap ($0.01-0.02), Pro is expensive ($0.05-0.10).
+Don't do Flash's work in Pro's prompt.
+
