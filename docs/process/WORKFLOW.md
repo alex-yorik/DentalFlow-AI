@@ -70,3 +70,19 @@ After each task, generate minimal prompt for next role:
   3. PROMPT FOR NEXT PHASE
 - No new improvements or tech debt search
 - All new ideas → docs/BACKLOG.md
+## Handoff Format (MANDATORY)
+
+Flash MUST output ONLY:
+1. Changed files (list with +/- counts)
+2. What to verify (3-5 bullet points)
+3. Expected result (1-2 sentences)
+
+Flash MUST NOT output:
+- Detailed tables with 20+ rows
+- Code structure diagrams
+- Full DoD checklists
+- Backlog tables
+- Questions to reviewer
+- Git diff summaries
+
+Maximum handoff length: 20 lines.
