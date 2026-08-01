@@ -12,7 +12,7 @@ from src.llm.client import LLMClient
 from src.rules.validator import validate_ai_output
 from src.rules.safety import check_safety
 from src.rules.qualification import calculate_score
-from src.leads.models import Lead, LeadState
+from src.leads.models import Lead, LeadState, PHONE_PATTERN, EMAIL_PATTERN
 from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
 from src.leads.state_machine import suggest_state, validate_transition, apply_transition
 from src.integrations.crm import get_provider
@@ -66,6 +66,10 @@ def _apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: s
             continue
         lead_field = _field_map.get(field.field_name)
         if lead_field and getattr(lead, lead_field, None) is None:
+            if field.field_name == 'phone' and not PHONE_PATTERN.match(field.value):
+                logger.warning(f"LLM extracted invalid phone format: {field.value}")
+            elif field.field_name == 'email' and not EMAIL_PATTERN.match(field.value):
+                logger.warning(f"LLM extracted invalid email format: {field.value}")
             setattr(lead, lead_field, field.value)
 
     new_entry = f"User asked about {output.intent.value}"

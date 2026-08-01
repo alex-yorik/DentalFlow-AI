@@ -1,8 +1,15 @@
 import enum
+import logging
+import re
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+logger = logging.getLogger(__name__)
+
+PHONE_PATTERN = re.compile(r'^[\d\s\-\+\(\)]{7,20}$')
+EMAIL_PATTERN = re.compile(r'^[\w\.-]+@[\w\.-]+\.\w+$')
 
 
 class LeadState(str, enum.Enum):
@@ -37,3 +44,21 @@ class Lead(BaseModel):
     refusal_count: int = 0
     created_at: datetime
     updated_at: datetime
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not PHONE_PATTERN.match(v):
+            logger.warning(f"Invalid phone format: {v}")
+        return v
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not EMAIL_PATTERN.match(v):
+            logger.warning(f"Invalid email format: {v}")
+        return v
