@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -17,6 +18,7 @@ from src.leads.state_machine import suggest_state, validate_transition, apply_tr
 from src.integrations.crm import get_provider
 from src.integrations.notifications import notify_staff
 from src.followup import FollowUpEngine
+from src.storage import database
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +117,9 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot, schedule_followup: b
         else:
             apply_transition(lead, LeadState.CLOSED)
     except Exception as e:
-        logger.error("CRM write failed: %s", e)
+        logger.error("CRM write failed for lead %s (chat %s): %s", lead.id, lead.telegram_chat_id, e)
+        lead.crm_contact_id = None
+        apply_transition(lead, LeadState.COLLECT_FIELDS)
 
 
 _rate_limit: dict[int, deque] = defaultdict(deque)
@@ -170,7 +174,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         followup_engine = context.bot_data.get("followup_engine")
         if followup_engine:
             await followup_engine.cancel_followup(lead.id)
-        lead.followup_task_id = None
+        now = datetime.now(timezone.utc)
+        conn = await database.get_connection()
+        await conn.execute(
+            "UPDATE leads SET followup_task_id = NULL, updated_at = ? WHERE id = ?",
+            (now.isoformat(), lead.id),
+        )
+        await conn.commit()
+        await conn.close()
         lead = await get_lead_by_chat_id(chat_id)
 
     if lead and lead.state == LeadState.CLOSED:
@@ -231,6 +242,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if next_state == LeadState.CRM_WRITE:
             followup_engine = context.bot_data.get("followup_engine")
             await _write_to_crm(lead, config, context.bot, output.schedule_followup, followup_engine)
+    else:
+        logger.warning(
+            "Transition blocked for chat %s: %s → %s — %s",
+            chat_id, lead.state.value, next_state.value, transition.reason,
+        )
 
     _try_advance_lead(lead, config.client.qualification)
 
