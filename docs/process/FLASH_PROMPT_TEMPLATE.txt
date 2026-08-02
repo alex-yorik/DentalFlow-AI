@@ -1,0 +1,22 @@
+PROMPT FOR FLASH
+
+ROLE: developer
+PHASE: [Phase name per ROADMAP.md]
+
+Allowed Files:
+- file1
+- file2
+- file3
+
+Goal: [one sentence]
+
+DoD:
+- criterion 1
+- criterion 2
+- criterion 3
+
+Rules:
+- rule 1
+- Do NOT modify [forbidden files]
+
+Start → py_compile → pytest → PROMPT FOR PRO QA.
