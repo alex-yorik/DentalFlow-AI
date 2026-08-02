@@ -12,6 +12,21 @@ from src.storage.migrations import SCHEMA
 CLIENT_NAME = "demo_dental"
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_db():
+    """Create data/database.db with schema synchronously.
+    Avoids asyncio.run() which creates aiosqlite connections in the wrong
+    event loop (pytest-asyncio uses its own loop)."""
+    import sqlite3
+    from src.storage.database import DB_PATH
+    from src.storage.migrations import SCHEMA
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.executescript(SCHEMA)
+    conn.commit()
+    conn.close()
+
+
 @pytest.fixture
 def demo_client_config() -> ClientConfig:
     return load_client_config(CLIENT_NAME)
