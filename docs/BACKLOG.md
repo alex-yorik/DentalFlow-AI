@@ -79,3 +79,19 @@ No idea here is lost — it will be considered in future phases.
 - [ ] Add entrypoint script for bind-mount permissions (chmod/chown /data)
 - [ ] Consider alpine base image to reduce size below 200MB
 
+
+## Phase 9D.2 — Fix Pre-existing Lint/Type Issues
+
+### Critical
+- [ ] Fix 96 ruff lint issues (ruff check src/ tests/)
+- [ ] Fix 17 mypy typecheck issues (mypy src/)
+
+### Priority
+- Fix critical rules first (F401 unused imports, E999 syntax errors)
+- Then fix important rules (F841 unused variables, E501 line length)
+- Finally fix style rules (E201 whitespace, E302 blank lines)
+
+### Estimated cost
+- Flash: $0.30-0.50
+- Time: 1-2 hours
+
