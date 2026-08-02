@@ -23,7 +23,12 @@ COPY . .
 
 USER appuser
 
+ARG HEALTHCHECK_INTERVAL=30s
+ARG HEALTHCHECK_TIMEOUT=10s
+ARG HEALTHCHECK_START_PERIOD=10s
+ARG HEALTHCHECK_RETRIES=3
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+    CMD python docker/healthcheck.py
 
 CMD ["python", "-m", "src.main"]

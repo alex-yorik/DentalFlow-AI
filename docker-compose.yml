@@ -1,17 +1,23 @@
 services:
   bot:
-    build: .
+    build:
+      context: .
+      args:
+        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-30s}
+        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
+        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
+        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
     restart: unless-stopped
     env_file:
       - .env
     volumes:
       - ./data:/app/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
-      interval: 30s
-      timeout: 10s
-      start_period: 10s
-      retries: 3
+      test: ["CMD", "python", "docker/healthcheck.py"]
+      interval: ${HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${HEALTHCHECK_TIMEOUT:-10s}
+      start_period: ${HEALTHCHECK_START_PERIOD:-10s}
+      retries: ${HEALTHCHECK_RETRIES:-3}
     mem_limit: 512m
     cpus: "1.0"
     ports:
