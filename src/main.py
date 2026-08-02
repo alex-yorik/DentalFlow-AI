@@ -1,10 +1,12 @@
 import asyncio
 import logging
+import os
 import threading
 
 import uvicorn
 
 from src.bootstrap import bootstrap
+from src.core.logging import uvicorn_log_config
 from src.entrypoints.telegram import run_telegram
 from src.entrypoints.web import _build_web_app
 
@@ -22,7 +24,12 @@ async def main() -> None:
     web_thread = threading.Thread(
         target=uvicorn.run,
         args=(web_app,),
-        kwargs={"host": config.web_host, "port": config.web_port, "log_level": "info"},
+        kwargs={
+            "host": config.web_host,
+            "port": config.web_port,
+            "log_level": config.log_level.lower(),
+            "log_config": uvicorn_log_config(config.log_level, os.getenv("LOG_FORMAT", "json")),
+        },
         daemon=True,
     )
     web_thread.start()

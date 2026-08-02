@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import os
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.channels.web.adapter import router as web_router
+from src.core.logging import uvicorn_log_config
 from src.llm.client import LLMClient
 from src.storage.database import init_db
 
@@ -39,7 +41,13 @@ def run_web(config) -> None:
     asyncio.run(init_db())
     app = _build_web_app(config)
     logger.info("Starting web channel on http://%s:%s", config.web_host, config.web_port)
-    uvicorn.run(app, host=config.web_host, port=config.web_port, log_level="info")
+    uvicorn.run(
+        app,
+        host=config.web_host,
+        port=config.web_port,
+        log_level=config.log_level.lower(),
+        log_config=uvicorn_log_config(config.log_level, os.getenv("LOG_FORMAT", "json")),
+    )
 
 
 if __name__ == "__main__":

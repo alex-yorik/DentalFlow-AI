@@ -81,6 +81,7 @@ class AppConfig(BaseModel):
     openai_model: str = "gpt-4o-mini"
     client_name: str = "demo_dental"
     debug: bool = False
+    log_level: str = "INFO"
     crm_provider: str = "mock"
     web_port: int = 8080
     web_host: str = "0.0.0.0"
@@ -145,6 +146,7 @@ def load_config() -> AppConfig:
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         client_name=client_name,
         debug=os.getenv("DEBUG", "").lower() in ("1", "true", "yes"),
+        log_level=os.getenv("LOG_LEVEL", "INFO"),
         crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
         web_port=int(os.getenv("DENTALFLOW_PORT", "8080")),
         client=client,
