@@ -1,5 +1,5 @@
 services:
-  bot:
+  telegram:
     build:
       context: .
       args:
@@ -7,6 +7,26 @@ services:
         HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
         HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
         HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
+    command: ["python", "-m", "src.entrypoints.telegram"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - backend
+    mem_limit: 384m
+    cpus: "0.5"
+
+  web:
+    build:
+      context: .
+      args:
+        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-30s}
+        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
+        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
+        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
+    command: ["python", "-m", "src.entrypoints.web"]
     restart: unless-stopped
     env_file:
       - .env
@@ -18,12 +38,31 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT:-10s}
       start_period: ${HEALTHCHECK_START_PERIOD:-10s}
       retries: ${HEALTHCHECK_RETRIES:-3}
-    mem_limit: 512m
-    cpus: "1.0"
     ports:
       - "8080:8080"
     networks:
       - backend
+    mem_limit: 512m
+    cpus: "1.0"
+
+  followup:
+    build:
+      context: .
+      args:
+        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-30s}
+        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
+        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
+        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
+    command: ["python", "-m", "src.entrypoints.followup"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - backend
+    mem_limit: 256m
+    cpus: "0.5"
 
 networks:
   backend:

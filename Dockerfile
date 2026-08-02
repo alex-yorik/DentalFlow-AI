@@ -31,4 +31,9 @@ ARG HEALTHCHECK_RETRIES=3
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD python docker/healthcheck.py
 
+# Alternative entrypoints (override CMD in docker-compose):
+#   CMD ["python", "-m", "src.entrypoints.telegram"]
+#   CMD ["python", "-m", "src.entrypoints.web"]
+#   CMD ["python", "-m", "src.entrypoints.followup"]
+
 CMD ["python", "-m", "src.main"]
