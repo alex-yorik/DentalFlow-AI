@@ -10,11 +10,21 @@ from src.core.logging import uvicorn_log_config
 from src.entrypoints.telegram import run_telegram
 from src.entrypoints.web import _build_web_app
 
+"""DEV-ONLY entry point — do NOT use in production.
+
+Production runs separate entrypoints via docker-compose:
+  src.entrypoints.telegram / web / followup.
+Running uvicorn in a thread (+) telegram via asyncio.run in one
+process mixes two event loops (event-loop race). Use entrypoints.
+"""
+
 logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
     config = bootstrap()["config"]
+
+    logger.warning("src.main is DEV-ONLY; production uses src.entrypoints.* via docker-compose")
 
     if not config.telegram_bot_token:
         logger.error("TELEGRAM_BOT_TOKEN is not set. Create .env from .env.example")

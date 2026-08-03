@@ -93,7 +93,7 @@ def try_advance_lead(lead: Lead, qual_config: QualificationConfig) -> None:
 async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, schedule_followup: bool = False, followup_engine: FollowUpEngine | None = None) -> None:
     if lead.crm_contact_id:
         return
-    from src.channels.telegram.handlers import get_provider
+    from src.integrations.crm import get_provider
     crm = get_provider(config.crm_provider)
     try:
         contact_id = await crm.create_contact(lead)

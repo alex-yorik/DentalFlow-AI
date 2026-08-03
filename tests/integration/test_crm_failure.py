@@ -95,7 +95,7 @@ class TestCrmFailureRecovery:
             suggested_action=SuggestedAction.CRM_WRITE,
         )
 
-        with patch("src.channels.telegram.handlers.get_provider") as mock_get_provider:
+        with patch("src.integrations.crm.get_provider") as mock_get_provider:
             mock_crm = MagicMock()
             mock_crm.create_contact = AsyncMock(side_effect=Exception("CRM unavailable"))
             mock_get_provider.return_value = mock_crm
