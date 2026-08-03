@@ -18,7 +18,11 @@ class TestWebEntrypoint:
 
     def test_build_app_includes_web_router(self, demo_app_config):
         app = web._build_web_app(demo_app_config)
-        paths = {route.path for route in app.routes}
+        paths = {
+            route.path
+            for route in app.routes
+            if hasattr(route, "path")
+        }
         assert "/api/chat" in paths
 
     def test_run_web_is_callable(self):

@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,15 +22,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Normalize image name (ghcr requires lowercase)
+        id: normalize
+        run: |
+          IMAGE_NAME="${{ github.repository }}"
+          echo "image_name=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.normalize.outputs.image_name }}:${{ github.ref_name }}
+            ghcr.io/${{ steps.normalize.outputs.image_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
 
       - uses: softprops/action-gh-release@v2
         with:
