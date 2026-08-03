@@ -9,7 +9,8 @@ from telegram.ext import ContextTypes
 from src.config.loader import AppConfig
 from src.llm.client import LLMClient
 from src.leads.models import Lead, LeadState
-from src.leads.repository import create_lead, get_lead_by_chat_id
+from src.leads.repository import get_lead_by_chat_id
+from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message, sanitize_input
 from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.followup import FollowUpEngine
@@ -76,12 +77,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         lead = await get_lead_by_chat_id(chat_id)
 
-        if lead and lead.state == LeadState.BLOCKED:
-            await update.message.reply_text(
-                config.client.business.messages.get("error_unsafe", "")
-            )
-            return
-
         if lead and lead.state == LeadState.FOLLOWUP_PENDING:
             followup_engine = context.bot_data.get("followup_engine")
             if followup_engine:
@@ -94,13 +89,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             await conn.commit()
             await conn.close()
-            lead = await get_lead_by_chat_id(chat_id)
 
-        if lead and lead.state == LeadState.CLOSED:
-            lead = None
-
-        if lead is None:
-            lead = await create_lead(chat_id)
+        lead, blocked_reply = await resolve_lead(
+            chat_id,
+            source="telegram",
+            channel_type="telegram",
+            blocked_reply=config.client.business.messages.get("error_unsafe", ""),
+        )
+        if blocked_reply:
+            await update.message.reply_text(blocked_reply)
+            return
 
         msg = IncomingMessage(channel_user_id=str(chat_id), text=user_text)
         outgoing = TelegramOutgoingAdapter(update)

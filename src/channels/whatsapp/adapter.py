@@ -6,9 +6,9 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from src.channels.base import IncomingMessage, OutgoingAdapter
+from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message
 from src.leads.models import LeadState
-from src.leads.repository import get_lead_by_chat_id, create_lead
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +49,14 @@ async def whatsapp_webhook(request: Request, body: WhatsAppMessage) -> dict:
 
     chat_id = _phone_to_int(body.phone_number)
 
-    lead = await get_lead_by_chat_id(chat_id)
-    if lead and lead.state == LeadState.BLOCKED:
-        return {"reply": config.client.business.messages.get("error_unsafe", "")}
-    if lead and lead.state == LeadState.CLOSED:
-        lead = None
-    if lead is None:
-        lead = await create_lead(chat_id, source="whatsapp", channel_type="whatsapp")
+    lead, blocked_reply = await resolve_lead(
+        chat_id,
+        source="whatsapp",
+        channel_type="whatsapp",
+        blocked_reply=config.client.business.messages.get("error_unsafe", ""),
+    )
+    if blocked_reply:
+        return {"reply": blocked_reply}
 
     msg = IncomingMessage(
         channel_user_id=body.phone_number,

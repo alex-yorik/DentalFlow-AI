@@ -76,8 +76,8 @@ class TestChatEndpoint:
                 channel_type="web",
             )
 
-        monkeypatch.setattr("src.channels.web.adapter.get_lead_by_chat_id", fake_get_lead)
-        monkeypatch.setattr("src.channels.web.adapter.create_lead", fake_create_lead)
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", fake_get_lead)
+        monkeypatch.setattr("src.core.lead_lookup.create_lead", fake_create_lead)
 
         resp = client.post("/api/chat", json={"channel_id": "test_channel", "text": "What are your hours?"})
         assert resp.status_code == 200
@@ -98,7 +98,7 @@ class TestChatEndpoint:
         async def fake_get_lead(*args, **kwargs):
             return blocked_lead
 
-        monkeypatch.setattr("src.channels.web.adapter.get_lead_by_chat_id", fake_get_lead)
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", fake_get_lead)
 
         resp = client.post("/api/chat", json={"channel_id": "blocked_user", "text": "Hello"})
         assert resp.status_code == 200
@@ -145,8 +145,8 @@ class TestChatEndpoint:
                 channel_type="web",
             )
 
-        monkeypatch.setattr("src.channels.web.adapter.get_lead_by_chat_id", fake_get_lead)
-        monkeypatch.setattr("src.channels.web.adapter.create_lead", fake_create_lead)
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", fake_get_lead)
+        monkeypatch.setattr("src.core.lead_lookup.create_lead", fake_create_lead)
 
         resp = client.post("/api/chat", json={"channel_id": "returning_user", "text": "I'm back"})
         assert resp.status_code == 200
@@ -184,8 +184,8 @@ class TestChatEndpoint:
             created_leads.append(lead)
             return lead
 
-        monkeypatch.setattr("src.channels.web.adapter.get_lead_by_chat_id", fake_get_lead)
-        monkeypatch.setattr("src.channels.web.adapter.create_lead", fake_create_lead)
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", fake_get_lead)
+        monkeypatch.setattr("src.core.lead_lookup.create_lead", fake_create_lead)
 
         resp = client.post("/api/chat", json={"channel_id": "new_user", "text": "Hi"})
         assert resp.status_code == 200

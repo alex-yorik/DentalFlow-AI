@@ -7,9 +7,9 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from src.channels.base import IncomingMessage, OutgoingAdapter
+from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message
 from src.leads.models import LeadState
-from src.leads.repository import get_lead_by_chat_id, create_lead
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +43,14 @@ async def chat(request: Request, body: ChatRequest) -> dict:
 
     chat_id = _channel_id_to_int(body.channel_id)
 
-    lead = await get_lead_by_chat_id(chat_id)
-
-    if lead and lead.state == LeadState.BLOCKED:
-        return {"reply": config.client.business.messages.get("error_unsafe", "")}
-
-    if lead and lead.state == LeadState.CLOSED:
-        lead = None
-
-    if lead is None:
-        lead = await create_lead(chat_id, source="web", channel_type="web")
+    lead, blocked_reply = await resolve_lead(
+        chat_id,
+        source="web",
+        channel_type="web",
+        blocked_reply=config.client.business.messages.get("error_unsafe", ""),
+    )
+    if blocked_reply:
+        return {"reply": blocked_reply}
 
     msg = IncomingMessage(
         channel_user_id=body.channel_id,

@@ -51,8 +51,11 @@ class Lead(BaseModel):
     def validate_phone(cls, v: str | None) -> str | None:
         if v is None:
             return None
+        v = v.strip()
+        if not v:
+            return None
         if not PHONE_PATTERN.match(v):
-            logger.warning(f"Invalid phone format: {v}")
+            raise ValueError(f"Invalid phone format: {v}")
         return v
 
     @field_validator('email')
@@ -60,6 +63,9 @@ class Lead(BaseModel):
     def validate_email(cls, v: str | None) -> str | None:
         if v is None:
             return None
+        v = v.strip()
+        if not v:
+            return None
         if not EMAIL_PATTERN.match(v):
-            logger.warning(f"Invalid email format: {v}")
+            raise ValueError(f"Invalid email format: {v}")
         return v

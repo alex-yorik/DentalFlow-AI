@@ -59,8 +59,10 @@ def apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: st
         if lead_field and getattr(lead, lead_field, None) is None:
             if field.field_name == 'phone' and not PHONE_PATTERN.match(field.value):
                 logger.warning(f"LLM extracted invalid phone format: {field.value}")
+                continue
             elif field.field_name == 'email' and not EMAIL_PATTERN.match(field.value):
                 logger.warning(f"LLM extracted invalid email format: {field.value}")
+                continue
             setattr(lead, lead_field, field.value)
 
     new_entry = f"User asked about {output.intent.value}"

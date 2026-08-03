@@ -78,8 +78,8 @@ class TestWhatsAppWebhook:
             created.append((chat_id, source, channel_type))
             return None
 
-        monkeypatch.setattr(wa, "get_lead_by_chat_id", fake_get_lead)
-        monkeypatch.setattr(wa, "create_lead", fake_create_lead)
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", fake_get_lead)
+        monkeypatch.setattr("src.core.lead_lookup.create_lead", fake_create_lead)
 
         async def fake_process_message(msg, outgoing, lead, config, llm_client):
             await outgoing.send_message(msg.channel_user_id, "Bonjour")
@@ -92,13 +92,12 @@ class TestWhatsAppWebhook:
         assert created and created[0][1] == "whatsapp" and created[0][2] == "whatsapp"
 
     def test_blocked_lead_returns_error(self, client, monkeypatch, demo_app_config):
-        from src.channels.whatsapp import adapter as wa
         from src.leads.models import Lead, LeadState
         from datetime import datetime
 
         now = datetime.now()
         blocked = Lead(id="b1", channel_user_id=123, state=LeadState.BLOCKED, created_at=now, updated_at=now)
-        monkeypatch.setattr(wa, "get_lead_by_chat_id", AsyncMock(return_value=blocked))
+        monkeypatch.setattr("src.core.lead_lookup.get_lead_by_chat_id", AsyncMock(return_value=blocked))
 
         resp = client.post("/whatsapp/webhook", json={"phone_number": "+79160000003", "text": "hi"})
         expected = demo_app_config.client.business.messages.get("error_unsafe", "")
