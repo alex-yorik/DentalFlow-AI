@@ -14,7 +14,7 @@ async def notify_staff_followup_complete(config: AppConfig, lead: Lead, bot: Bot
     if not staff_chat_id:
         return
 
-    message = f"Follow-up completed for lead {lead.id} (chat {lead.telegram_chat_id})"
+    message = f"Follow-up completed for lead {lead.id} (chat {lead.channel_user_id})"
 
     try:
         await bot.send_message(chat_id=staff_chat_id, text=message)
@@ -39,6 +39,6 @@ async def notify_staff(config: AppConfig, lead: Lead, bot: Bot) -> None:
 
     try:
         await bot.send_message(chat_id=staff_chat_id, text=message)
-        logger.info("Staff notification sent for lead %s (chat %s)", lead.id, lead.telegram_chat_id)
+        logger.info("Staff notification sent for lead %s (chat %s)", lead.id, lead.channel_user_id)
     except Exception as e:
         logger.error("Failed to send staff notification: %s", e)

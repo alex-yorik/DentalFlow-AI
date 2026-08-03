@@ -34,7 +34,7 @@ def _output(**kwargs) -> AIOutput:
 def _lead(**kwargs) -> Lead:
     defaults = dict(
         id="test_lead_id",
-        telegram_chat_id=99999,
+        channel_user_id=99999,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )

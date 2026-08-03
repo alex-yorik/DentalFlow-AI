@@ -136,7 +136,19 @@ def load_client_config(client_name: str) -> ClientConfig:
     )
 
 
+REQUIRED_ENV_VARS = ("TELEGRAM_BOT_TOKEN", "OPENAI_API_KEY")
+
+
+def validate_required_env() -> None:
+    missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var, "").strip()]
+    if missing:
+        raise ValueError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
+
+
 def load_config() -> AppConfig:
+    validate_required_env()
     client_name = os.getenv("DENTALFLOW_CLIENT", "demo_dental")
     client = load_client_config(client_name)
 

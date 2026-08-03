@@ -1,7 +1,7 @@
 import logging
 import os
 
-from src.config.loader import load_config
+from src.config.loader import load_config, validate_required_env
 from src.core.logging import setup_logging
 from src.llm.client import LLMClient
 
@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def bootstrap() -> dict:
+    validate_required_env()
     config = load_config()
     setup_logging(config.log_level, os.getenv("LOG_FORMAT", "json"))
     llm_client = LLMClient(

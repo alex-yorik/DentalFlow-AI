@@ -17,7 +17,7 @@ def _lead(state: LeadState = LeadState.NEW, **kwargs) -> Lead:
     now = datetime.now(timezone.utc)
     return Lead(
         id="test-id",
-        telegram_chat_id=999,
+        channel_user_id=999,
         state=state,
         created_at=now,
         updated_at=now,

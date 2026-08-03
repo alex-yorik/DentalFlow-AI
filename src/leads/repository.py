@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def _row_to_lead(row) -> Lead:
     return Lead(
         id=row["id"],
-        telegram_chat_id=row["telegram_chat_id"],
+        channel_user_id=row["channel_user_id"],
         state=LeadState(row["state"]),
         name=row["name"],
         phone=row["phone"],
@@ -38,11 +38,11 @@ def _row_to_lead(row) -> Lead:
     )
 
 
-async def create_lead(telegram_chat_id: int, source: str = "telegram", channel_type: str = "telegram") -> Lead:
+async def create_lead(channel_user_id: int, source: str = "telegram", channel_type: str = "telegram") -> Lead:
     now = datetime.now(timezone.utc)
     lead = Lead(
         id=str(uuid.uuid4()),
-        telegram_chat_id=telegram_chat_id,
+        channel_user_id=channel_user_id,
         source=source,
         channel_type=channel_type,
         created_at=now,
@@ -56,14 +56,14 @@ async def create_lead(telegram_chat_id: int, source: str = "telegram", channel_t
     try:
         await conn.execute(
             """INSERT INTO leads
-               (id, telegram_chat_id, state, source, channel_type,
+               (id, channel_user_id, state, source, channel_type,
                 opt_in_consent, internal_tags,
                 qualification_score, conversation_summary,
                 refusal_count,
                 created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                lead.id, lead.telegram_chat_id, lead.state.value, lead.source, lead.channel_type,
+                lead.id, lead.channel_user_id, lead.state.value, lead.source, lead.channel_type,
                 1 if lead.opt_in_consent else 0,
                 json.dumps(lead.internal_tags),
                 lead.qualification_score, lead.conversation_summary,
@@ -74,13 +74,13 @@ async def create_lead(telegram_chat_id: int, source: str = "telegram", channel_t
         await conn.commit()
         return lead
     except (aiosqlite.Error, StorageError) as e:
-        logger.error("StorageError: create_lead(chat_id=%s) failed: %s", telegram_chat_id, e)
-        raise StorageError(f"create_lead failed for chat {telegram_chat_id}: {e}") from e
+        logger.error("StorageError: create_lead(chat_id=%s) failed: %s", channel_user_id, e)
+        raise StorageError(f"create_lead failed for chat {channel_user_id}: {e}") from e
     finally:
         await conn.close()
 
 
-async def get_lead_by_chat_id(telegram_chat_id: int) -> Lead | None:
+async def get_lead_by_chat_id(channel_user_id: int) -> Lead | None:
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -88,15 +88,15 @@ async def get_lead_by_chat_id(telegram_chat_id: int) -> Lead | None:
 
     try:
         cursor = await conn.execute(
-            "SELECT * FROM leads WHERE telegram_chat_id = ? ORDER BY created_at DESC LIMIT 1",
-            (telegram_chat_id,),
+            "SELECT * FROM leads WHERE channel_user_id = ? ORDER BY created_at DESC LIMIT 1",
+            (channel_user_id,),
         )
         row = await cursor.fetchone()
         if row is None:
             return None
         return _row_to_lead(row)
     except (aiosqlite.Error, StorageError) as e:
-        logger.error("StorageError: get_lead_by_chat_id(chat_id=%s) failed: %s", telegram_chat_id, e)
+        logger.error("StorageError: get_lead_by_chat_id(chat_id=%s) failed: %s", channel_user_id, e)
         return None
     finally:
         await conn.close()
@@ -132,13 +132,13 @@ async def update_lead(lead: Lead) -> None:
         )
         await conn.commit()
     except (aiosqlite.Error, StorageError) as e:
-        logger.error("StorageError: update_lead(id=%s, chat_id=%s) failed: %s", lead.id, lead.telegram_chat_id, e)
+        logger.error("StorageError: update_lead(id=%s, chat_id=%s) failed: %s", lead.id, lead.channel_user_id, e)
         raise StorageError(f"update_lead failed for lead {lead.id}: {e}") from e
     finally:
         await conn.close()
 
 
-async def lead_exists(telegram_chat_id: int) -> bool:
+async def lead_exists(channel_user_id: int) -> bool:
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -146,12 +146,12 @@ async def lead_exists(telegram_chat_id: int) -> bool:
 
     try:
         cursor = await conn.execute(
-            "SELECT 1 FROM leads WHERE telegram_chat_id = ? LIMIT 1",
-            (telegram_chat_id,),
+            "SELECT 1 FROM leads WHERE channel_user_id = ? LIMIT 1",
+            (channel_user_id,),
         )
         return await cursor.fetchone() is not None
     except (aiosqlite.Error, StorageError) as e:
-        logger.error("StorageError: lead_exists(chat_id=%s) failed: %s", telegram_chat_id, e)
+        logger.error("StorageError: lead_exists(chat_id=%s) failed: %s", channel_user_id, e)
         return False
     finally:
         await conn.close()

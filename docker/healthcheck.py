@@ -4,7 +4,8 @@ import urllib.request
 
 host = os.environ.get("WEB_HOST", "localhost")
 port = os.environ.get("WEB_PORT", "8080")
-url = f"http://{host}:{port}/health"
+path = os.environ.get("HEALTH_PATH", "/health")
+url = f"http://{host}:{port}{path}"
 
 try:
     with urllib.request.urlopen(url) as response:

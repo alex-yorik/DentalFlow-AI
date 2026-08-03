@@ -15,7 +15,7 @@ def _make_lead(**overrides) -> Lead:
     now = datetime.now()
     defaults = dict(
         id="test-id",
-        telegram_chat_id=0,
+        channel_user_id=0,
         created_at=now,
         updated_at=now,
     )
@@ -71,7 +71,7 @@ class TestChatEndpoint:
 
         async def fake_create_lead(*args, **kwargs):
             return _make_lead(
-                telegram_chat_id=hash("test_channel") & 0x7FFFFFFF,
+                channel_user_id=hash("test_channel") & 0x7FFFFFFF,
                 source="web",
                 channel_type="web",
             )
@@ -89,7 +89,7 @@ class TestChatEndpoint:
         from src.leads.models import LeadState
 
         blocked_lead = _make_lead(
-            telegram_chat_id=12345,
+            channel_user_id=12345,
             state=LeadState.BLOCKED,
             source="web",
             channel_type="web",
@@ -110,7 +110,7 @@ class TestChatEndpoint:
         from src.leads.models import LeadState
 
         closed_lead = _make_lead(
-            telegram_chat_id=12345,
+            channel_user_id=12345,
             state=LeadState.CLOSED,
             source="web",
             channel_type="web",
@@ -140,7 +140,7 @@ class TestChatEndpoint:
             nonlocal call_count
             call_count += 1
             return _make_lead(
-                telegram_chat_id=hash("returning_user") & 0x7FFFFFFF,
+                channel_user_id=hash("returning_user") & 0x7FFFFFFF,
                 source="web",
                 channel_type="web",
             )
@@ -177,7 +177,7 @@ class TestChatEndpoint:
 
         async def fake_create_lead(chat_id, source="", channel_type=""):
             lead = _make_lead(
-                telegram_chat_id=chat_id,
+                channel_user_id=chat_id,
                 source=source,
                 channel_type=channel_type,
             )

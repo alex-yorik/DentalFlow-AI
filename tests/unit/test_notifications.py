@@ -36,7 +36,7 @@ def _make_config(staff_chat_id: int = 123456789) -> AppConfig:
 def _make_lead(**overrides) -> Lead:
     defaults = dict(
         id="1",
-        telegram_chat_id=12345,
+        channel_user_id=12345,
         state=LeadState.FOLLOWUP_PENDING,
         name="Test User",
         phone="+1234567890",
@@ -57,7 +57,7 @@ async def test_notify_staff_followup_complete():
 
     bot.send_message.assert_awaited_once_with(
         chat_id=999,
-        text=f"Follow-up completed for lead {lead.id} (chat {lead.telegram_chat_id})",
+        text=f"Follow-up completed for lead {lead.id} (chat {lead.channel_user_id})",
     )
 
 

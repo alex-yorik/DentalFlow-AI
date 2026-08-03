@@ -12,13 +12,13 @@ class MockCRMProvider(CRMProvider):
         self._leads: dict[str, dict] = {}
 
     async def create_contact(self, lead: Lead) -> str:
-        contact_id = f"mock_contact_{lead.telegram_chat_id}"
+        contact_id = f"mock_contact_{lead.channel_user_id}"
         self._contacts[contact_id] = {
             "name": lead.name,
             "phone": lead.phone,
             "email": lead.email,
         }
-        logger.info("Mock CRM: created contact %s for chat %s", contact_id, lead.telegram_chat_id)
+        logger.info("Mock CRM: created contact %s for chat %s", contact_id, lead.channel_user_id)
         return contact_id
 
     async def update_contact(self, contact_id: str, lead: Lead) -> None:
@@ -31,7 +31,7 @@ class MockCRMProvider(CRMProvider):
         logger.info("Mock CRM: updated contact %s", contact_id)
 
     async def create_lead(self, contact_id: str, lead: Lead) -> str:
-        lead_id = f"mock_lead_{lead.telegram_chat_id}_{lead.id[:8]}"
+        lead_id = f"mock_lead_{lead.channel_user_id}_{lead.id[:8]}"
         self._leads[lead_id] = {
             "contact_id": contact_id,
             "service_interest": lead.service_interest,

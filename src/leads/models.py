@@ -25,7 +25,7 @@ class LeadState(str, enum.Enum):
 
 class Lead(BaseModel):
     id: str
-    telegram_chat_id: int
+    channel_user_id: int
     state: LeadState = LeadState.NEW
     name: Optional[str] = None
     phone: Optional[str] = None

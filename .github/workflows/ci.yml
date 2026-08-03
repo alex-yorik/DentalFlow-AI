@@ -31,6 +31,9 @@ jobs:
         run: mypy --no-error-summary src/ || true
 
       - name: Test
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python -m pytest tests/ -v --tb=short
 
       - uses: docker/setup-buildx-action@v3

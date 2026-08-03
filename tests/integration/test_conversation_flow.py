@@ -176,7 +176,7 @@ class TestHandleMessage:
         mock_update.message.reply_text.assert_awaited_with(expected)
 
     async def test_blocked_lead_gets_no_processing(self, mock_update, mock_context, db):
-        lead = await create_lead(telegram_chat_id=99999)
+        lead = await create_lead(channel_user_id=99999)
         apply_transition(lead, LeadState.BLOCKED)
         await update_lead(lead)
 

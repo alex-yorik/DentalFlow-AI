@@ -6,19 +6,19 @@ It is designed as a portfolio-grade commercial MVP that can later be adapted to 
 
 ## Phase Status
 
-Current Phase: **Phase 7 — polish and portfolio readiness**
+Current Phase: **Phase 9 — Production Deployment**
 
-Status: **PLANNING**
+Status: **IN PROGRESS (9B.2 — Docker healthcheck parameterization)**
 
-Next Action: Define scope of Phase 7 and write the architecture plan.
+Next Action: Parameterize healthcheck in Dockerfile and docker-compose.yml with env vars.
 
 Current Reviewer: **DeepSeek V4 Pro (Architect)**
 
 Current Developer: **DeepSeek V4 Flash (Developer)**
 
-Current Git Tag: *none — latest merged phase tag TBD*
+Current Git Tag: **v0.9.1** (Phase 9B.1: Extract entry points)
 
-Last Updated: 2026-07-31
+Last Updated: 2026-08-02
 
 ## Current status
 Completed:
@@ -29,9 +29,13 @@ Completed:
 - Phase 4: Telegram channel integration — MERGED
 - Phase 5: CRM and notifications — MERGED
 - Phase 6: follow-up engine — MERGED
+- Phase 7: polish and portfolio readiness — MERGED
+- Phase 8: multi-channel support — MERGED
+- Phase 9A: Docker production image — MERGED
+- Phase 9B.1: Extract entry points — MERGED
 
 Next:
-- Phase 7: polish and portfolio readiness
+- Phase 9B.2: Docker healthcheck parameterization
 
 ## Core architecture decisions
 - Telegram is only a transport channel.

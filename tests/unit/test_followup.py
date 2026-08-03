@@ -155,7 +155,7 @@ async def test_send_followup_full_cycle_reschedule(db):
     await update_lead(lead)
 
     now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.telegram_chat_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -166,7 +166,7 @@ async def test_send_followup_full_cycle_reschedule(db):
     await engine._send_followup(task)
 
     bot.send_message.assert_awaited_once()
-    assert bot.send_message.call_args[1]["chat_id"] == lead.telegram_chat_id
+    assert bot.send_message.call_args[1]["chat_id"] == lead.channel_user_id
 
     updated = await _get_due_tasks(datetime.now(timezone.utc) + timedelta(minutes=61))
     task_updated = next((t for t in updated if t.id == task.id), None)
@@ -183,7 +183,7 @@ async def test_send_followup_full_cycle_complete(db):
     await update_lead(lead)
 
     now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.telegram_chat_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
     await _insert_task(task)
 
     config = _make_engine_config(overrides={"max_retries": 1})
@@ -198,7 +198,7 @@ async def test_send_followup_full_cycle_complete(db):
     due = await _get_due_tasks(datetime.now(timezone.utc) + timedelta(hours=1))
     assert task.id not in [t.id for t in due], "completed task should not be due"
 
-    lead_updated = await get_lead_by_chat_id(lead.telegram_chat_id)
+    lead_updated = await get_lead_by_chat_id(lead.channel_user_id)
     assert lead_updated.state == LeadState.CLOSED, "lead should be closed after max retries"
 
 
@@ -212,7 +212,7 @@ async def test_send_followup_error_recovery(db):
     await update_lead(lead)
 
     now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.telegram_chat_id, next_run_at=now - timedelta(minutes=5), retry_count=0)
+    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0)
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -238,7 +238,7 @@ async def test_send_followup_dual_acquire(db):
     await update_lead(lead)
 
     now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.telegram_chat_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
     await _insert_task(task)
 
     config = _make_engine_config()

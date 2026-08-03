@@ -217,7 +217,7 @@ class FollowUpEngine:
         task = FollowUpTask(
             id=str(uuid.uuid4()),
             lead_id=lead.id,
-            chat_id=lead.telegram_chat_id,
+            chat_id=lead.channel_user_id,
             max_retries=self.config.client.followup.max_retries,
             next_run_at=next_run,
             created_at=datetime.now(timezone.utc),

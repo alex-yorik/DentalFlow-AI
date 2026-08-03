@@ -113,7 +113,7 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, sc
         else:
             apply_transition(lead, LeadState.CLOSED)
     except Exception as e:
-        logger.error("CRM write failed for lead %s (chat %s): %s", lead.id, lead.telegram_chat_id, e)
+        logger.error("CRM write failed for lead %s (chat %s): %s", lead.id, lead.channel_user_id, e)
         lead.crm_contact_id = None
         apply_transition(lead, LeadState.COLLECT_FIELDS)
 

@@ -7,24 +7,15 @@ import pytest
 import pytest_asyncio
 
 from src.config.loader import AppConfig, ClientConfig, load_client_config
-from src.storage.migrations import SCHEMA
+from src.storage.database import DB_PATH, run_alembic_upgrade
 
 CLIENT_NAME = "demo_dental"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _ensure_db():
-    """Create data/database.db with schema synchronously.
-    Avoids asyncio.run() which creates aiosqlite connections in the wrong
-    event loop (pytest-asyncio uses its own loop)."""
-    import sqlite3
-    from src.storage.database import DB_PATH
-    from src.storage.migrations import SCHEMA
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.executescript(SCHEMA)
-    conn.commit()
-    conn.close()
+    run_alembic_upgrade(DB_PATH)
 
 
 @pytest.fixture
@@ -48,9 +39,9 @@ async def db_path() -> AsyncGenerator[Path, None]:
         path = Path(f.name)
     conn = await aiosqlite.connect(str(path))
     conn.row_factory = aiosqlite.Row
-    await conn.executescript(SCHEMA)
     await conn.commit()
     await conn.close()
+    run_alembic_upgrade(path)
     yield path
     path.unlink(missing_ok=True)
 
