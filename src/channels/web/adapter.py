@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from pathlib import Path
 
@@ -32,7 +33,7 @@ class ChatRequest(BaseModel):
 
 
 def _channel_id_to_int(channel_id: str) -> int:
-    return hash(channel_id) & 0x7FFFFFFF
+    return int(hashlib.sha256(channel_id.encode("utf-8")).hexdigest(), 16) & 0x7FFFFFFF
 
 
 @router.post("/api/chat")

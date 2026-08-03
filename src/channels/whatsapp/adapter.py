@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Any
 
@@ -38,7 +39,7 @@ class WhatsAppWebhookPayload(BaseModel):
 
 
 def _phone_to_int(phone: str) -> int:
-    return hash(phone) & 0x7FFFFFFF
+    return int(hashlib.sha256(phone.encode("utf-8")).hexdigest(), 16) & 0x7FFFFFFF
 
 
 @router.post("/whatsapp/webhook")

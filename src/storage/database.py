@@ -48,6 +48,7 @@ async def get_connection() -> aiosqlite.Connection:
             raw.row_factory = aiosqlite.Row
             await raw.execute("PRAGMA journal_mode=WAL")
             await raw.execute("PRAGMA foreign_keys=ON")
+            await raw.execute("PRAGMA busy_timeout=5000")
             await raw.commit()
             _db_connection = raw
         except aiosqlite.Error as e:
