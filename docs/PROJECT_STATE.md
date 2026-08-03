@@ -6,19 +6,19 @@ It is designed as a portfolio-grade commercial MVP that can later be adapted to 
 
 ## Phase Status
 
-Current Phase: **Phase 9 — Production Deployment**
+Current Phase: **Phase 10.1 — Monitoring (watchdog, alerts, /metrics)**
 
-Status: **IN PROGRESS (9B.2 — Docker healthcheck parameterization)**
+Status: **COMPLETE**
 
-Next Action: Parameterize healthcheck in Dockerfile and docker-compose.yml with env vars.
+Next Action: Phase 10.2 — Analytics dashboard (see docs/ROADMAP.md).
 
 Current Reviewer: **DeepSeek V4 Pro (Architect)**
 
 Current Developer: **DeepSeek V4 Flash (Developer)**
 
-Current Git Tag: **v0.9.1** (Phase 9B.1: Extract entry points)
+Current Git Tag: **v0.10.1**
 
-Last Updated: 2026-08-02
+Last Updated: 2026-08-03
 
 ## Current status
 Completed:
@@ -33,9 +33,12 @@ Completed:
 - Phase 8: multi-channel support — MERGED
 - Phase 9A: Docker production image — MERGED
 - Phase 9B.1: Extract entry points — MERGED
+- Phase 10.1: Monitoring — watchdog, Telegram alerts, /metrics — MERGED (v0.10.1)
+
+ADR 002 (JSON-driven core scope) — ACCEPTED. 217 tests passing, ruff clean.
 
 Next:
-- Phase 9B.2: Docker healthcheck parameterization
+- Phase 10.2: Analytics dashboard (see docs/ROADMAP.md)
 
 ## Core architecture decisions
 - Telegram is only a transport channel.

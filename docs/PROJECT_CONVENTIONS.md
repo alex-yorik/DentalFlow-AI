@@ -1,5 +1,11 @@
 # Project Conventions
 
+## Current Status
+- Version **v0.10.1**
+- Phase **10.1** complete — watchdog, Telegram alerts, `/metrics`
+- ADR 002 accepted (JSON-driven core scope)
+- **217** tests passing
+
 ## Communication
 - All progress reports, explanations, and questions to the developer must be in Russian.
 - Source code, identifiers, filenames, JSON keys, and Git commit messages stay in English.
