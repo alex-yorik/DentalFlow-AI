@@ -156,6 +156,7 @@
 ### Backlog (низкий приоритет):
 - [ ] Рассмотреть Postgres вместо SQLite (если потребуется масштабирование)
 - [ ] Вынести Alembic-миграции в отдельный сервис (если станут проблемой)
+- [ ] **Phase 11 Full JSON-Driven Core** (On hold: waiting for 2nd client outside appointment-based services) — см. `docs/adr/002-json-driven-core-scope.md`
 
 ---
 
