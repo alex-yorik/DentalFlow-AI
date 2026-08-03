@@ -1,97 +1,180 @@
-# Backlog
+# Backlog & Known Limitations
 
-This file records ideas that arose after APPROVE of a completed phase.
-No idea here is lost — it will be considered in future phases.
-
-**Policy:** Once a phase receives APPROVE, all new ideas go here, not back into the current phase.
+**Last updated:** August 2026  
+**Version:** v0.9.10 (Phase 9 Complete)  
+**Audit:** Phase 9 Round 2 (independent review)
 
 ---
 
-## Critical
+##  Known Limitations (не блокируют релиз v0.9.10)
 
-*None yet.*
+### 3.1 `_response_store` — утечка памяти + не переживает рестарт
 
-## High
+**Файлы:** `src/channels/web/adapter.py`, `src/channels/whatsapp/adapter.py`
 
-*None yet.*
+**Проблема:**
+- `_response_store: dict[str, list[dict]] = {}` — обычный процесс-локальный словарь
+- Растёт бесконечно (записи не удаляются никогда)
+- Полностью пропадает при рестарте контейнера
+- При масштабировании (несколько инстансов web) — история видна только на одном инстансе
 
-## Medium
+**Практическое влияние:**
+- Для MVP/демо — приемлемо
+- При долгой работе без рестарта — рост памяти (не критично, т.к. очищается при пустых deque)
+- После рестарта пользователь потеряет историю ответов (но не состояние лида — оно в БД)
 
-*None yet.*
+**Плановое решение (Phase 11+):**
+- Redis или другая внешняя cache-система
+- TTL для записей (автоочистка старых)
+- Или периодическая очистка старых записей (>24 часов)
 
-## Low
+**Статус:** Принято как осознанный компромисс для MVP
 
-*None yet.*
+---
 
-## Technical Debt
+### 2.3 Дублирование boilerplate между каналами
 
-*None yet.*
+**Файлы:** 
+- `src/channels/telegram/handlers.py::handle_message`
+- `src/channels/web/adapter.py::chat`
+- `src/channels/whatsapp/adapter.py::whatsapp_webhook`
 
-## Future Ideas
+**Проблема:**
+Во всех трёх адаптерах дублируется:
+1. Проверка `BLOCKED` → проверка `CLOSED` (обнулить лида)
+2. `create_lead` если лида нет
+3. Сборка `IncomingMessage`
+4. Вызов `process_message`
 
-*None yet.*
-## Phase 7D.2 Follow-up (из аудита)
+Плюс почти идентичные `_response_store` и `OutgoingAdapter` классы.
 
-### High Priority (критично для production)
+**Практическое влияние:**
+- Технический долг (изменения нужно вносить в 3 места)
+- Риск рассинхронизации логики
 
-#### Testing Debt
-- [ ] Add explicit `assert result.is_fallback is True` in fallback tests
-- [ ] Add unit test for `notify_staff_followup_complete()`
+**Плановое решение (Phase 10 или 11):**
+- Вынести общую логику в `src/core/lead_lookup.py`:
+```python
+  async def resolve_lead(
+      channel_id: str, 
+      channel_type: str,
+      repository: LeadRepository
+  ) -> Lead | None:
+      # lookup → BLOCKED → CLOSED→None → create
+```
+- Все 3 адаптера используют `resolve_lead()` вместо дублирования
 
-### Medium Priority
+**Статус:** В планах, не блокирует релиз
 
-#### Code Quality
-- [ ] **2.3**: Consolidate duplicate `_write_to_crm()` calls
-- [ ] **2.4**: Add validation for `score_rules` keys in qualification.json
+---
 
-### Low Priority
+## ⚠️ Архитектурные замечания (на будущее)
 
-#### Performance & Reliability
-- [ ] **3.1**: Implement SQLite connection pooling
-- [ ] **3.2**: Add cleanup for stale chat_ids in `_rate_limit` dict
-- [ ] **3.3**: Improve `check_safety()` substring matching with word boundaries
-- [ ] **3.4**: Add field validation in Lead model (phone, email format)
+### 4.1 `_SingletonConnection.close()` — намеренный no-op
 
-#### Code Consistency
-- [ ] **4.1**: Convert dataclasses to Pydantic models
-- [ ] **4.2**: Clarify `apply_transition()` return value
-- [ ] **4.3**: Fix `LLMClient._fallback()` intent semantics
-- [ ] **4.4**: Move `temperature=0.1` to AppConfig
+**Файл:** `src/storage/database.py`
 
+**Проблема:**
+- Метод `close()` ничего не делает (чтобы код репозиториев не убивал синглтон)
+- Хрупко: любой новый код, который рассчитывает на настоящее закрытие соединения, тихо этого не получит
 
-## Phase 8B Follow-up
+**Рекомендация:**
+- Явно задокументировать это поведение в докстроке модуля
+- Добавить предупреждение для разработчиков
 
-### Medium Priority
-- [ ] Clean up _response_store in web/adapter.py (memory leak for long-running server)
-  - Similar to _rate_limit cleanup in 7D.2.2
-  - Add TTL-based cleanup or periodic purge
+**Статус:** Работает, но требует документации
 
-### Low Priority
-- [ ] Narrow CORS allow_origins from ["*"] to specific domains
-- [ ] Handle hash collisions in channel_id mapping (theoretical)
-- [ ] Add FOLLOWUP_PENDING handling for web channel (if needed)
+---
 
+### 4.2 Data classes без pydantic
 
-## Phase 9A Follow-up
+**Файлы:** 
+- `src/rules/models.py` (`TransitionResult`, `SafetyVerdict`)
+- `src/leads/state_machine.py` (`ValidationResult`, `QualificationResult`)
 
-### Low Priority
-- [ ] Update docker-compose.yml to v3 syntax: mem_limit/cpus → deploy.resources.limits
-- [ ] Add entrypoint script for bind-mount permissions (chmod/chown /data)
-- [ ] Consider alpine base image to reduce size below 200MB
+**Проблема:**
+- По-прежнему обычные классы вместо pydantic
+- Тогда как всё остальное (`Lead`, `AIOutput`, `IncomingMessage`) — типизировано
 
+**Практическое влияние:**
+- Стилистическая непоследовательность
+- Нет автоматической валидации
 
-## Phase 9D.2 — Fix Pre-existing Lint/Type Issues
+**Рекомендация:**
+- Привести к pydantic в рамках общего рефакторинга
 
-### Critical
-- [ ] Fix 96 ruff lint issues (ruff check src/ tests/)
-- [ ] Fix 17 mypy typecheck issues (mypy src/)
+**Статус:** Косметическое, не критично
 
-### Priority
-- Fix critical rules first (F401 unused imports, E999 syntax errors)
-- Then fix important rules (F841 unused variables, E501 line length)
-- Finally fix style rules (E201 whitespace, E302 blank lines)
+---
 
-### Estimated cost
-- Flash: $0.30-0.50
-- Time: 1-2 hours
+### 4.3 `temperature=0.1` захардкожен в LLM client
 
+**Файл:** `src/llm/client.py`
+
+**Проблема:**
+- `temperature` захардкожена, не вынесена в конфиг
+
+**Рекомендация:**
+- Добавить в `LLMConfig` как настраиваемый параметр
+
+**Статус:** Низкий приоритет
+
+---
+
+## 🔧 Отложено из аудита Phase 9
+
+### SQLite для 3 контейнеров (решено частично)
+
+**Решено в v0.9.10:**
+- ✅ Добавлен `PRAGMA busy_timeout=5000`
+- ✅ Детерминированный hash (sha256 вместо встроенного)
+
+**Осталось на будущее:**
+- Рассмотреть Postgres вместо SQLite при масштабировании
+- Вынести Alembic-миграции в отдельный сервис (если станут проблемой)
+
+**Статус:** Достаточно для текущего релиза
+
+---
+
+## 📝 Примечания
+
+### Что было исправлено из прошлого аудита:
+
+| Было | Стало |
+|------|-------|
+| Zombie-состояние лида при частичном сбое CRM-записи | ✅ Исправлено (откат + явное `crm_contact_id = None`) |
+| Мёртвый код при сбросе follow-up | ✅ Прямой `UPDATE` |
+| Тихий отказ перехода состояния | ✅ Явный `logger.warning` |
+| `confidence == 0.0` как маркер | ✅ Явный `is_fallback: bool` |
+| Substring-мэтчинг | ✅ Regex с `\b` границами |
+| `score_rules: dict[str, Any]` | ✅ Типизированная `ScoreRules(BaseModel)` |
+| Новое SQLite-соединение на запрос | ✅ Singleton-соединение на процесс |
+| Неограниченный рост `_rate_limit` | ✅ Очистка пустых deque |
+| Дублирующийся `_write_to_crm` | ✅ Убран |
+| Схема БД руками | ✅ Alembic-миграции |
+
+---
+
+## 🎯 Приоритеты
+
+### До Phase 10 (перед production):
+- [ ] 3.1 `_response_store` — задокументировать (сделано ✅)
+- [ ] 4.1 `_SingletonConnection` — добавить docstring
+
+### Phase 10 (Production Deployment):
+- [ ] Мониторинг и алерты
+- [ ] Backup БД
+- [ ] SSL/TLS
+
+### Phase 11 (Refactoring):
+- [ ] 2.3 Вынести общую логику в `lead_lookup.py`
+- [ ] 4.2 Привести data classes к pydantic
+- [ ] 4.3 Вынести `temperature` в конфиг
+
+### Backlog (низкий приоритет):
+- [ ] Рассмотреть Postgres вместо SQLite (если потребуется масштабирование)
+
+---
+
+**Last reviewed:** August 2026, Phase 9 Round 2 Audit

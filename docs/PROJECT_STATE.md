@@ -66,3 +66,21 @@ Full decision records: see `docs/ARCHITECTURE_DECISIONS.md`.
 - Keep changes small and phase-based.
 - Stop after each phase and wait for approval.
 - After APPROVE, new ideas go to `docs/BACKLOG.md`, not back into the current phase.
+
+## Known Limitations
+
+См. [BACKLOG.md](BACKLOG.md) — задокументированы:
+- `_response_store` (утечка памяти, не переживает рестарт)
+- Дублирование кода между каналами
+- Прочие архитектурные замечания
+
+Не блокируют релиз v0.9.10, запланированы на Phase 11.
+
+## Known Limitations
+
+См. [BACKLOG.md](BACKLOG.md) — задокументированы:
+- `_response_store` (утечка памяти, не переживает рестарт)
+- Дублирование кода между каналами
+- Прочие архитектурные замечания
+
+Не блокируют релиз v0.9.10, запланированы на Phase 11.
