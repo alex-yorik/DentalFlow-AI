@@ -14,7 +14,8 @@ class TestWebEntrypoint:
         client = TestClient(app)
         resp = client.get("/health")
         assert resp.status_code == 200
-        assert resp.json() == {"status": "ok", "service": "dentalflow"}
+        body = resp.json()
+        assert body["status"] == "ok" and body["service"] == "dentalflow"
 
     def test_build_app_includes_web_router(self, demo_app_config):
         app = web._build_web_app(demo_app_config)

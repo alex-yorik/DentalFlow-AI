@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.channels.web.adapter import router as web_router
 from src.core.logging import uvicorn_log_config
 from src.llm.client import LLMClient
+from src.monitoring.metrics import metrics
 from src.storage.database import init_db
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,11 @@ def _build_web_app(config):
 
     @app.get("/health")
     async def health():
-        return {"status": "ok", "service": "dentalflow"}
+        return {"status": "ok", "service": "dentalflow", "uptime_seconds": metrics.uptime_seconds()}
+
+    @app.get("/metrics")
+    async def get_metrics():
+        return metrics.snapshot()
 
     app.add_middleware(
         CORSMiddleware,

@@ -5,6 +5,7 @@ import signal
 from telegram.ext import Application
 
 from src.followup import FollowUpEngine
+from src.monitoring.heartbeat import HeartbeatWriter
 from src.storage.database import close_connection, init_db
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 async def run_followup(config) -> None:
     await init_db()
+
+    heartbeat = HeartbeatWriter("followup", config.monitoring.heartbeat_interval)
+    await heartbeat.start()
 
     app = Application.builder().token(config.telegram_bot_token).build()
     followup_engine = FollowUpEngine(config, app.bot)
@@ -33,6 +37,7 @@ async def run_followup(config) -> None:
         await shutdown_event.wait()
     finally:
         logger.info("Shutting down followup...")
+        await heartbeat.stop()
         await followup_engine.stop()
         await close_connection()
 

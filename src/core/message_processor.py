@@ -13,6 +13,7 @@ from src.leads.state_machine import suggest_state, validate_transition, apply_tr
 from src.integrations.notifications import notify_staff
 from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.followup import FollowUpEngine
+from src.monitoring.metrics import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,7 @@ async def process_message(
 ) -> None:
     user_text = sanitize_input(msg.text)
     if user_text is None:
+        metrics.inc("messages_processed")
         await outgoing.send_message(
             msg.channel_user_id,
             config.client.business.messages.get("error_generic", ""),
@@ -147,6 +149,8 @@ async def process_message(
 
     if output.escalation_needed and output.is_fallback:
         logger.warning("LLM fallback for %s %s: %s", msg.channel_type, msg.channel_user_id, output.escalation_reason)
+        metrics.inc("messages_processed")
+        metrics.inc("messages_error")
         await outgoing.send_message(
             msg.channel_user_id,
             config.client.business.messages.get("error_generic", ""),
@@ -156,6 +160,7 @@ async def process_message(
     validation = validate_ai_output(output, config.client.rules)
     if not validation.valid:
         logger.warning("Validation failed for %s %s: %s", msg.channel_type, msg.channel_user_id, validation.reason)
+        metrics.inc("messages_error")
         await outgoing.send_message(
             msg.channel_user_id,
             config.client.business.messages.get("error_out_of_scope", ""),
@@ -165,6 +170,7 @@ async def process_message(
     verdict = check_safety(output, config.client.rules, lead)
     if not verdict.allowed:
         logger.warning("Safety check failed for %s %s: %s", msg.channel_type, msg.channel_user_id, verdict.blocked_reason)
+        metrics.inc("messages_error")
         await outgoing.send_message(
             msg.channel_user_id,
             config.client.business.messages.get("error_unsafe", ""),
@@ -200,4 +206,5 @@ async def process_message(
         await _write_to_crm(lead, config, bot_for_notifications, output.schedule_followup, followup_engine)
 
     await update_lead(lead)
+    metrics.inc("messages_processed")
     await outgoing.send_message(msg.channel_user_id, output.reply_text)

@@ -4,6 +4,7 @@ import signal
 
 from src.channels.telegram.bot import create_bot
 from src.followup import FollowUpEngine
+from src.monitoring.heartbeat import HeartbeatWriter
 from src.storage.database import close_connection, init_db
 
 logger = logging.getLogger(__name__)
@@ -11,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 async def run_telegram(config) -> None:
     await init_db()
+
+    heartbeat = HeartbeatWriter("telegram", config.monitoring.heartbeat_interval)
+    await heartbeat.start()
 
     try:
         bot = create_bot(config)
@@ -46,6 +50,7 @@ async def run_telegram(config) -> None:
         await shutdown_event.wait()
     finally:
         logger.info("Shutting down telegram...")
+        await heartbeat.stop()
         if followup_engine:
             await followup_engine.stop()
         await bot.updater.stop()

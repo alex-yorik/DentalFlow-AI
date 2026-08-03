@@ -81,6 +81,14 @@ class FollowUpConfig(BaseModel):
     poll_interval_seconds: int = 30
 
 
+class MonitoringConfig(BaseModel):
+    watchdog_interval: int = 30
+    heartbeat_interval: int = 30
+    alerts_chat_id: Optional[int] = None
+    alert_cooldown_minutes: int = 15
+    web_health_url: str = "http://localhost:8080/health"
+
+
 class PromptCollection(BaseModel):
     system: str
 
@@ -106,6 +114,7 @@ class AppConfig(BaseModel):
     web_port: int = 8080
     web_host: str = "0.0.0.0"
     client: ClientConfig
+    monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
 
 
 CLIENTS_DIR = Path(os.getenv("DENTALFLOW_CLIENTS_DIR", "./clients"))
@@ -182,4 +191,11 @@ def load_config() -> AppConfig:
         crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
         web_port=int(os.getenv("DENTALFLOW_PORT", "8080")),
         client=client,
+        monitoring=MonitoringConfig(
+            watchdog_interval=int(os.getenv("WATCHDOG_INTERVAL", "30")),
+            heartbeat_interval=int(os.getenv("HEARTBEAT_INTERVAL", "30")),
+            alerts_chat_id=int(os.getenv("ALERTS_CHAT_ID", "0")) or None,
+            alert_cooldown_minutes=int(os.getenv("ALERT_COOLDOWN_MINUTES", "15")),
+            web_health_url=os.getenv("WATCHDOG_WEB_URL", "http://localhost:8080/health"),
+        ),
     )

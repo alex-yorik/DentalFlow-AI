@@ -105,3 +105,30 @@ class TestAppConfig:
         monkeypatch.setenv("DEBUG", "true")
         from src.config.loader import load_config
         assert load_config().debug is True
+
+    def test_monitoring_config_defaults(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        from src.config.loader import load_config
+        m = load_config().monitoring
+        assert m.watchdog_interval == 30
+        assert m.heartbeat_interval == 30
+        assert m.alert_cooldown_minutes == 15
+        assert m.alerts_chat_id is None
+        assert m.web_health_url == "http://localhost:8080/health"
+
+    def test_monitoring_config_from_env(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        monkeypatch.setenv("WATCHDOG_INTERVAL", "45")
+        monkeypatch.setenv("HEARTBEAT_INTERVAL", "20")
+        monkeypatch.setenv("ALERT_COOLDOWN_MINUTES", "5")
+        monkeypatch.setenv("ALERTS_CHAT_ID", "123456")
+        monkeypatch.setenv("WATCHDOG_WEB_URL", "http://web:8080/health")
+        from src.config.loader import load_config
+        m = load_config().monitoring
+        assert m.watchdog_interval == 45
+        assert m.heartbeat_interval == 20
+        assert m.alert_cooldown_minutes == 5
+        assert m.alerts_chat_id == 123456
+        assert m.web_health_url == "http://web:8080/health"
