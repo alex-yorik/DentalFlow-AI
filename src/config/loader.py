@@ -1,9 +1,9 @@
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BusinessInfo(BaseModel):
@@ -33,6 +33,24 @@ class RulesConfig(BaseModel):
     max_refusal_count: int = 3
 
 
+class ScoringRule(BaseModel):
+    attribute: str
+    match: Literal["presence", "equals"]
+    value: Optional[str] = None
+
+
+def _default_rule_map() -> dict[str, ScoringRule]:
+    return {
+        "has_name": ScoringRule(attribute="name", match="presence"),
+        "has_phone": ScoringRule(attribute="phone", match="presence"),
+        "has_email": ScoringRule(attribute="email", match="presence"),
+        "has_service_interest": ScoringRule(attribute="service_interest", match="presence"),
+        "has_preferred_time": ScoringRule(attribute="preferred_time", match="presence"),
+        "intent_is_new_appointment": ScoringRule(attribute="intent", match="equals", value="new_appointment"),
+        "urgency_is_urgent": ScoringRule(attribute="urgency", match="equals", value="urgent"),
+    }
+
+
 class ScoreRules(BaseModel):
     has_name: int = 0
     has_phone: int = 0
@@ -41,6 +59,8 @@ class ScoreRules(BaseModel):
     has_preferred_time: int = 0
     intent_is_new_appointment: int = 0
     urgency_is_urgent: int = 0
+    custom_points: dict[str, int] = Field(default_factory=dict)
+    rule_map: dict[str, ScoringRule] = Field(default_factory=_default_rule_map)
 
     model_config = ConfigDict(extra='forbid')
 

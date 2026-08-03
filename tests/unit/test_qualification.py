@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from src.leads.models import Lead, LeadState
-from src.config.loader import QualificationConfig
+from src.config.loader import QualificationConfig, ScoringRule
 from src.rules.qualification import calculate_score
 
 
@@ -105,6 +105,31 @@ class TestQualification:
             QUAL_CONFIG,
         )
         assert result.score == 40
+
+
+class TestQualificationExtensibility:
+    def test_new_mapping_entry_scored_without_body_change(self):
+        config = QualificationConfig(
+            critical_fields=["name"],
+            score_rules={
+                "has_name": 10,
+                "urgency_is_urgent": 5,
+                "custom_points": {"urgency_is_medium": 7},
+                "rule_map": {
+                    "has_name": ScoringRule(attribute="name", match="presence"),
+                    "urgency_is_urgent": ScoringRule(attribute="urgency", match="equals", value="urgent"),
+                    "urgency_is_medium": ScoringRule(attribute="urgency", match="equals", value="medium"),
+                },
+            },
+            crm_write_threshold=25,
+        )
+
+        regular = calculate_score(
+            _lead(name="John", urgency="medium"),
+            config,
+        )
+        assert regular.score == 17
+        assert regular.breakdown["urgency_is_medium"] == 7
 
 
 class TestQualificationEdgeCases:

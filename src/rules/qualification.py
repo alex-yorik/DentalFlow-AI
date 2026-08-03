@@ -1,5 +1,5 @@
 from src.leads.models import Lead
-from src.config.loader import QualificationConfig
+from src.config.loader import QualificationConfig, ScoringRule
 
 
 class QualificationResult:
@@ -9,38 +9,27 @@ class QualificationResult:
         self.breakdown = breakdown
 
 
+def _rule_matches(lead: Lead, rule: ScoringRule) -> bool:
+    value = getattr(lead, rule.attribute, None)
+    if rule.match == "presence":
+        return bool(value and str(value).strip())
+    if rule.match == "equals":
+        return value is not None and value == rule.value
+    return False
+
+
 def calculate_score(lead: Lead, config: QualificationConfig) -> QualificationResult:
     score = 0
     breakdown: dict[str, int] = {}
     rules = config.score_rules
 
-    if lead.name and lead.name.strip() and rules.has_name:
-        score += rules.has_name
-        breakdown["has_name"] = rules.has_name
-
-    if lead.phone and lead.phone.strip() and rules.has_phone:
-        score += rules.has_phone
-        breakdown["has_phone"] = rules.has_phone
-
-    if lead.email and lead.email.strip() and rules.has_email:
-        score += rules.has_email
-        breakdown["has_email"] = rules.has_email
-
-    if lead.service_interest and lead.service_interest.strip() and rules.has_service_interest:
-        score += rules.has_service_interest
-        breakdown["has_service_interest"] = rules.has_service_interest
-
-    if lead.preferred_time and lead.preferred_time.strip() and rules.has_preferred_time:
-        score += rules.has_preferred_time
-        breakdown["has_preferred_time"] = rules.has_preferred_time
-
-    if lead.intent and lead.intent == "new_appointment" and rules.intent_is_new_appointment:
-        score += rules.intent_is_new_appointment
-        breakdown["intent_is_new_appointment"] = rules.intent_is_new_appointment
-
-    if lead.urgency and lead.urgency == "urgent" and rules.urgency_is_urgent:
-        score += rules.urgency_is_urgent
-        breakdown["urgency_is_urgent"] = rules.urgency_is_urgent
+    for key, rule_def in rules.rule_map.items():
+        points = getattr(rules, key, None)
+        if points is None:
+            points = rules.custom_points.get(key, 0)
+        if points and _rule_matches(lead, rule_def):
+            score += points
+            breakdown[key] = points
 
     return QualificationResult(
         qualified=score >= config.crm_write_threshold,
