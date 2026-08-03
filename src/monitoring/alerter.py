@@ -15,19 +15,22 @@ class Alerter:
         self._bot = bot
 
     async def send_down(self, service: str) -> None:
-        await self._send(service, "DOWN")
+        await self._send("DOWN", service)
 
     async def send_recovered(self, service: str) -> None:
-        await self._send(service, "RECOVERED")
+        await self._send("RECOVERED", service)
 
-    async def _send(self, service: str, status: str) -> None:
+    async def send_backup_failure(self, detail: str) -> None:
+        await self._send("BACKUP_FAILED", detail)
+
+    async def _send(self, status: str, subject: str) -> None:
         chat_id = self._config.monitoring.alerts_chat_id
         if not chat_id:
-            logger.info("No alerts_chat_id configured — skipping alert for %s", service)
+            logger.info("No alerts_chat_id configured — skipping alert for %s", subject)
             return
-        text = f"🚨 *{status}*: {service}"
+        text = f"🚨 *{status}*: {subject}"
         try:
             await self._bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
-            logger.info("Alert sent: %s %s", status, service)
+            logger.info("Alert sent: %s %s", status, subject)
         except Exception as e:  # noqa: BLE001
-            logger.error("Failed to send %s alert for %s: %s", status, service, e)
+            logger.error("Failed to send %s alert for %s: %s", status, subject, e)

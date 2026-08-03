@@ -41,6 +41,14 @@ async def test_send_recovered():
 
 
 @pytest.mark.asyncio
+async def test_send_backup_failure():
+    bot = FakeBot()
+    await Alerter(_cfg(chat_id=123), bot).send_backup_failure("disk full")
+    assert "BACKUP_FAILED" in bot.sent[0]["text"]
+    assert "disk full" in bot.sent[0]["text"]
+
+
+@pytest.mark.asyncio
 async def test_skips_when_no_chat_id():
     bot = FakeBot()
     await Alerter(_cfg(chat_id=None), bot).send_down("web")

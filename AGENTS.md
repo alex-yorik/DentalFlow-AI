@@ -40,6 +40,15 @@ Avoid endless review loops.
 ## Workflow
 Follow docs/process/WORKFLOW.md
 
+## Проектные gotchas (подтверждены инцидентами)
+- Alembic: корневого alembic.ini НЕТ. CLI только так:
+  `python -m alembic -c src/storage/alembic.ini upgrade head`
+- Docker: сервисы ходят друг к другу по имени (http://web:8080),
+  НИКОГДА по bind-адресу (0.0.0.0/web_host)
+- SQLite: бэкапы только через sqlite3 backup API; busy_timeout=5000
+- Любая команда, попавшая в docs/runbook, должна быть
+  реально выполнена в процессе разработки (docs as code)
+
 ## Handoff
 Generate minimal prompt for next role (see WORKFLOW.md)
 

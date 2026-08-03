@@ -149,6 +149,17 @@ Designed as **portfolio-grade commercial MVP**, adaptable to other businesses vi
 - Custom AI training per client
 - Advanced follow-up scenarios
 
+### Phase 10.2: Backup БД 🔄
+**Goal:** Regular, verified backups of the SQLite DB with rotation and restore.
+**Status:** Implementation done, pending review.
+**What was done:**
+- `backup` service in docker-compose (async-loop, interval `BACKUP_INTERVAL_HOURS`=6h)
+- Safe snapshot via `sqlite3.Connection.backup()` (WAL-safe), never raw copy
+- `PRAGMA integrity_check` on every backup; Telegram alert on failure (via `Alerter`)
+- Rotation keeps last `BACKUP_RETENTION_DAYS`=7 backups
+- `docker/restore_backup.py` + `docs/backup_runbook.md`
+- Tests: `tests/unit/test_backup.py`, `tests/unit/test_alerter.py`
+
 ### Phase 11: Client Onboarding
 - Self-service client setup wizard
 - Config validation UI

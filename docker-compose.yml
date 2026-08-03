@@ -120,6 +120,33 @@ services:
     mem_limit: 128m
     cpus: "0.25"
 
+  backup:
+    build:
+      context: .
+    command: ["python", "-m", "src.entrypoints.backup"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-6}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - backend
+    depends_on:
+      - telegram
+      - web
+      - followup
+    mem_limit: 128m
+    cpus: "0.25"
+
 networks:
   backend:
     driver: bridge

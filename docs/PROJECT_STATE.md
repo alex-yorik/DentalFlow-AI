@@ -6,11 +6,11 @@ It is designed as a portfolio-grade commercial MVP that can later be adapted to 
 
 ## Phase Status
 
-Current Phase: **Phase 10.1 — Monitoring (watchdog, alerts, /metrics)**
+Current Phase: **Phase 10.2 — Backup БД (scheduled backup, rotation, restore, integrity)**
 
-Status: **COMPLETE**
+Status: **COMPLETE** (implementation finished; awaiting APPROVE)
 
-Next Action: Phase 10.2 — Analytics dashboard (see docs/ROADMAP.md).
+Next Action: Phase 10.3 — Analytics dashboard (see docs/ROADMAP.md).
 
 Current Reviewer: **DeepSeek V4 Pro (Architect)**
 
@@ -34,11 +34,12 @@ Completed:
 - Phase 9A: Docker production image — MERGED
 - Phase 9B.1: Extract entry points — MERGED
 - Phase 10.1: Monitoring — watchdog, Telegram alerts, /metrics — MERGED (v0.10.1)
+- Phase 10.2: Backup БД — scheduled backup, rotation, restore, integrity — DONE (pending review)
 
-ADR 002 (JSON-driven core scope) — ACCEPTED. 217 tests passing, ruff clean.
+ADR 002 (JSON-driven core scope) — ACCEPTED. 225 tests passing, ruff clean.
 
 Next:
-- Phase 10.2: Analytics dashboard (see docs/ROADMAP.md)
+- Phase 10.3: Analytics dashboard (see docs/ROADMAP.md)
 
 ## Core architecture decisions
 - Telegram is only a transport channel.

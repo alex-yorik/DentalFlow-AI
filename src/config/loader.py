@@ -81,6 +81,11 @@ class FollowUpConfig(BaseModel):
     poll_interval_seconds: int = 30
 
 
+class BackupConfig(BaseModel):
+    backup_interval_hours: int = 24
+    retention_days: int = 7
+
+
 class MonitoringConfig(BaseModel):
     watchdog_interval: int = 30
     heartbeat_interval: int = 30
@@ -115,6 +120,7 @@ class AppConfig(BaseModel):
     web_host: str = "0.0.0.0"
     client: ClientConfig
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    backup: BackupConfig = Field(default_factory=BackupConfig)
 
 
 CLIENTS_DIR = Path(os.getenv("DENTALFLOW_CLIENTS_DIR", "./clients"))
@@ -197,5 +203,9 @@ def load_config() -> AppConfig:
             alerts_chat_id=int(os.getenv("ALERTS_CHAT_ID", "0")) or None,
             alert_cooldown_minutes=int(os.getenv("ALERT_COOLDOWN_MINUTES", "15")),
             web_health_url=os.getenv("WATCHDOG_WEB_URL", "http://localhost:8080/health"),
+        ),
+        backup=BackupConfig(
+            backup_interval_hours=int(os.getenv("BACKUP_INTERVAL_HOURS", "24")),
+            retention_days=int(os.getenv("BACKUP_RETENTION_DAYS", "7")),
         ),
     )
