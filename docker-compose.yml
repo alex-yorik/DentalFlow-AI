@@ -11,13 +11,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      WATCHED_SERVICE: "telegram"
+      HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-30}
     volumes:
       - ./data:/app/data
     healthcheck:
       test: ["CMD", "python", "docker/worker_healthcheck.py"]
-      environment:
-        WATCHED_SERVICE: "telegram"
-        HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-30}
       interval: ${HEALTHCHECK_INTERVAL:-30s}
       timeout: ${HEALTHCHECK_TIMEOUT:-10s}
       start_period: ${HEALTHCHECK_START_PERIOD:-40s}
@@ -78,13 +78,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      WATCHED_SERVICE: "followup"
+      HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-30}
     volumes:
       - ./data:/app/data
     healthcheck:
       test: ["CMD", "python", "docker/worker_healthcheck.py"]
-      environment:
-        WATCHED_SERVICE: "followup"
-        HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-30}
       interval: ${HEALTHCHECK_INTERVAL:-30s}
       timeout: ${HEALTHCHECK_TIMEOUT:-10s}
       start_period: ${HEALTHCHECK_START_PERIOD:-40s}

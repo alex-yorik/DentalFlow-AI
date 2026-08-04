@@ -41,11 +41,17 @@ Avoid endless review loops.
 Follow docs/process/WORKFLOW.md
 
 ## Проектные gotchas (подтверждены инцидентами)
+- Правило №1 для compose-правок: после ЛЮБОЙ правки docker-compose.yml —
+  `docker-compose config` (валидация схемы) + живой `up` на сервере.
+  Compose-ошибки не ловятся pytest и code review.
 - Alembic: корневого alembic.ini НЕТ. CLI только так:
   `python -m alembic -c src/storage/alembic.ini upgrade head`
 - Docker: сервисы ходят друг к другу по имени (http://web:8080),
   НИКОГДА по bind-адресу (0.0.0.0/web_host)
 - SQLite: бэкапы только через sqlite3 backup API; busy_timeout=5000
+- Volume + non-root user: хостовая папка data/ должна принадлежать UID
+  контейнера, иначе SQLite = "readonly database". После первого деплоя:
+  chown -R <uid> data/ (добавить в deploy-чеклист)
 - Любая команда, попавшая в docs/runbook, должна быть
   реально выполнена в процессе разработки (docs as code)
 
