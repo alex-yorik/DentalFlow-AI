@@ -38,6 +38,7 @@ def _build_web_app(config):
     app.state.llm_client = LLMClient(
         api_key=config.openai_api_key,
         model=config.openai_model,
+        base_url=config.base_url,
     )
     return app
 

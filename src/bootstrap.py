@@ -15,6 +15,7 @@ def bootstrap() -> dict:
     llm_client = LLMClient(
         api_key=config.openai_api_key,
         model=config.openai_model,
+        base_url=config.base_url,
     )
     logger.info("Config loaded: client=%s", config.client_name)
     return {"config": config, "llm_client": llm_client}

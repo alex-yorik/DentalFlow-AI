@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -20,6 +20,28 @@ class TestLLMClient:
     def test_constructor(self):
         client = LLMClient(api_key="test_key", model="gpt-4o-mini")
         assert client.model == "gpt-4o-mini"
+
+    def test_constructor_passes_base_url_to_sdk(self):
+        with patch("src.llm.client.AsyncOpenAI") as mock_openai:
+            LLMClient(api_key="test_key", base_url="https://openrouter.ai/api/v1")
+        mock_openai.assert_called_once_with(api_key="test_key", base_url="https://openrouter.ai/api/v1")
+
+    def test_constructor_without_base_url_keeps_previous_behavior(self):
+        with patch("src.llm.client.AsyncOpenAI") as mock_openai:
+            LLMClient(api_key="test_key")
+        mock_openai.assert_called_once_with(api_key="test_key")
+
+    def test_config_base_url_wired_into_client(self):
+        from src.bootstrap import bootstrap
+        with patch("src.bootstrap.load_config") as mock_load, patch("src.bootstrap.LLMClient") as mock_client, patch("src.bootstrap.validate_required_env"), patch("src.bootstrap.setup_logging"):
+            from unittest.mock import MagicMock
+            cfg = MagicMock()
+            cfg.openai_api_key = "k"
+            cfg.openai_model = "gpt-4o-mini"
+            cfg.base_url = "https://openrouter.ai/api/v1"
+            mock_load.return_value = cfg
+            bootstrap()
+        mock_client.assert_called_once_with(api_key="k", model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1")
 
     async def test_analyze_returns_parsed_output(self):
         expected = AIOutput(

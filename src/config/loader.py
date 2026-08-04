@@ -112,6 +112,7 @@ class AppConfig(BaseModel):
     telegram_bot_token: str
     openai_api_key: str
     openai_model: str = "gpt-4o-mini"
+    base_url: str | None = None
     client_name: str = "demo_dental"
     debug: bool = False
     log_level: str = "INFO"
@@ -191,6 +192,7 @@ def load_config() -> AppConfig:
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        base_url=os.getenv("OPENAI_BASE_URL") or None,
         client_name=client_name,
         debug=os.getenv("DEBUG", "").lower() in ("1", "true", "yes"),
         log_level=os.getenv("LOG_LEVEL", "INFO"),

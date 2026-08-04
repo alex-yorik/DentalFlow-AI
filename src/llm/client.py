@@ -10,9 +10,21 @@ _FALLBACK_REPLY = "I'm sorry, I couldn't process your request. Please try again 
 
 
 class LLMClient:
-    def __init__(self, *, api_key: str = "", model: str = "gpt-4o-mini", client: AsyncOpenAI | None = None):
+    def __init__(
+        self,
+        *,
+        api_key: str = "",
+        model: str = "gpt-4o-mini",
+        base_url: str | None = None,
+        client: AsyncOpenAI | None = None,
+    ):
         self.model = model
-        self._client = client or AsyncOpenAI(api_key=api_key)
+        if client is not None:
+            self._client = client
+        elif base_url is not None:
+            self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self._client = AsyncOpenAI(api_key=api_key)
 
     async def analyze(self, input_data: AIInput) -> AIOutput:
         messages = [

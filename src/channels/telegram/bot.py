@@ -12,6 +12,7 @@ def create_bot(config: AppConfig, followup_engine: FollowUpEngine | None = None)
     application.bot_data["llm_client"] = LLMClient(
         api_key=config.openai_api_key,
         model=config.openai_model,
+        base_url=config.base_url,
     )
     application.bot_data["followup_engine"] = followup_engine
     application.add_handler(CommandHandler("start", start_command))
