@@ -6,16 +6,14 @@ from datetime import datetime, timezone
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from src.channels.base import IncomingMessage
 from src.config.loader import AppConfig
-from src.llm.client import LLMClient
-from src.leads.models import Lead, LeadState
-from src.leads.repository import get_lead_by_chat_id
 from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message, sanitize_input
-from src.channels.base import IncomingMessage, OutgoingAdapter
-from src.followup import FollowUpEngine
+from src.leads.models import LeadState
+from src.leads.repository import get_lead_by_chat_id
+from src.llm.client import LLMClient
 from src.storage import database
-from src.integrations.crm import get_provider  # re-export for test patches
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +49,30 @@ def _check_rate_limit(chat_id: int) -> bool:
 _RATE_LIMIT_REPLY = "Please slow down. You are sending messages too quickly."
 
 
+def _extract_text_after_start(text: str | None) -> str | None:
+    if not text:
+        return None
+    first_line, sep, rest = text.lstrip().partition("\n")
+    if not first_line.startswith("/start"):
+        return None
+    parts = first_line.split(" ", 1)
+    if len(parts) > 1:
+        trailing = parts[1] + (sep + rest if sep else "")
+    else:
+        trailing = rest
+    trailing = trailing.strip()
+    return trailing or None
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: AppConfig = context.bot_data["config"]
     text = config.client.business.messages.get("welcome", "Hello!")
     await update.message.reply_text(text)
+
+    trailing = _extract_text_after_start(update.message.text)
+    if trailing is not None:
+        update.message.text = trailing
+        await handle_message(update, context)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
