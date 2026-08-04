@@ -6,19 +6,19 @@ It is designed as a portfolio-grade commercial MVP that can later be adapted to 
 
 ## Phase Status
 
-Current Phase: **Phase 10.2 — Backup БД (scheduled backup, rotation, restore, integrity)**
+Current Phase: **Phase 10.5 — Улучшение диалога (context & reschedule)**
 
 Status: **COMPLETE** (implementation finished; awaiting APPROVE)
 
-Next Action: Phase 10.3 — Analytics dashboard (see docs/ROADMAP.md).
+Next Action: Phase 10.6 — см. docs/ROADMAP.md.
 
 Current Reviewer: **DeepSeek V4 Pro (Architect)**
 
 Current Developer: **DeepSeek V4 Flash (Developer)**
 
-Current Git Tag: **v0.10.1**
+Current Git Tag: **v0.10.5**
 
-Last Updated: 2026-08-03
+Last Updated: 2026-08-04
 
 ## Current status
 Completed:
@@ -35,11 +35,12 @@ Completed:
 - Phase 9B.1: Extract entry points — MERGED
 - Phase 10.1: Monitoring — watchdog, Telegram alerts, /metrics — MERGED (v0.10.1)
 - Phase 10.2: Backup БД — scheduled backup, rotation, restore, integrity — DONE (pending review)
+- Phase 10.5: Dialog context storage + reschedule intent — DONE (pending review)
 
 ADR 002 (JSON-driven core scope) — ACCEPTED. 225 tests passing, ruff clean.
 
 Next:
-- Phase 10.3: Analytics dashboard (see docs/ROADMAP.md)
+- Phase 10.6: Analytics dashboard (see docs/ROADMAP.md)
 
 ## Core architecture decisions
 - Telegram is only a transport channel.

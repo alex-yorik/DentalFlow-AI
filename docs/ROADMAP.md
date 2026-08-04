@@ -160,6 +160,17 @@ Designed as **portfolio-grade commercial MVP**, adaptable to other businesses vi
 - `docker/restore_backup.py` + `docs/backup_runbook.md`
 - Tests: `tests/unit/test_backup.py`, `tests/unit/test_alerter.py`
 
+### Phase 10.5: Dialog context + reschedule 🟢
+**Goal:** Persistent dialog context and reschedule intent recognition.
+**Status:** Implementation done, pending review (v0.10.5).
+**What was done:**
+- `messages` + `appointments` tables (migration 004), `conversation_repository`, `appointment_repository`
+- `Intent.RESCHEDULE` + `SuggestedAction.RESCHEDULE`; system prompt guidance
+- Last 10 dialog turns passed to LLM as user/assistant messages; known fields in context so no re-asking; missing_fields guard
+- Reschedule shows existing appointment and updates it on new date/time
+- FollowUpEngine uses `existing_appointment` template when an appointment exists
+- Tests: +19 (254 total)
+
 ### Phase 11: Client Onboarding
 - Self-service client setup wizard
 - Config validation UI

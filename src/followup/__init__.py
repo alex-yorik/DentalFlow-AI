@@ -15,6 +15,7 @@ from src.leads.repository import get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
 from src.storage import database
 from src.storage.database import StorageError
+from src.storage.appointment_repository import find_existing_appointment
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +274,8 @@ class FollowUpEngine:
             return
 
         followup = self.config.client.followup
-        template = self._get_template(followup, task.retry_count)
+        appointment = await find_existing_appointment(lead.name, lead.phone)
+        template = self._get_template(followup, task.retry_count, appointment is not None)
         if not template:
             await _update_task_status(task.id, "cancelled")
             return
@@ -307,9 +309,9 @@ class FollowUpEngine:
                 lead.id, task.retry_count, task.max_retries, task.next_run_at.isoformat(),
             )
 
-    def _get_template(self, followup: FollowUpConfig, retry_count: int) -> str | None:
+    def _get_template(self, followup: FollowUpConfig, retry_count: int, has_appointment: bool = False) -> str | None:
         if retry_count == 0:
-            return followup.templates.get("initial")
+            return followup.templates.get("existing_appointment") if has_appointment else followup.templates.get("initial")
         elif retry_count < followup.max_retries:
             return followup.templates.get("reminder")
         return followup.templates.get("final")

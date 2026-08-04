@@ -32,6 +32,9 @@ class LLMClient:
         ]
         if input_data.conversation_context:
             messages.append({"role": "system", "content": f"Conversation context:\n{input_data.conversation_context}"})
+        for dm in input_data.recent_messages:
+            role = "assistant" if dm.role == "assistant" else "user"
+            messages.append({"role": role, "content": dm.text})
         messages.append({"role": "user", "content": input_data.user_message})
 
         try:

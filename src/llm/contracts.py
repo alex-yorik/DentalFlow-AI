@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class Intent(str, enum.Enum):
     FAQ = "faq"
     LEAD = "lead"
+    RESCHEDULE = "reschedule"
     OFF_TOPIC = "off_topic"
     UNSAFE = "unsafe"
 
@@ -16,6 +17,7 @@ class SuggestedAction(str, enum.Enum):
     ASK_FIELD = "ask_field"
     QUALIFY = "qualify"
     CRM_WRITE = "crm_write"
+    RESCHEDULE = "reschedule"
     CLOSE = "close"
     BLOCK = "block"
 
@@ -42,10 +44,19 @@ class AIOutput(BaseModel):
     is_fallback: bool = False
 
 
+class DialogMessage(BaseModel):
+    role: str = Field(description="One of: user, assistant")
+    text: str = Field(description="The message text")
+
+
 class AIInput(BaseModel):
     system_prompt: str = Field(description="Full system prompt with clinic context")
     user_message: str = Field(description="The user's latest message")
     conversation_context: str = Field(
         default="",
         description="Lead state, extracted fields, conversation summary so far",
+    )
+    recent_messages: list[DialogMessage] = Field(
+        default_factory=list,
+        description="Last N recent dialog turns as (role, text) before the current message",
     )

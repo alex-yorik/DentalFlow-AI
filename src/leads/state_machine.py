@@ -9,6 +9,7 @@ ACTION_TO_STATE: dict[SuggestedAction, LeadState] = {
     SuggestedAction.ASK_FIELD: LeadState.COLLECT_FIELDS,
     SuggestedAction.QUALIFY: LeadState.QUALIFYING,
     SuggestedAction.CRM_WRITE: LeadState.CRM_WRITE,
+    SuggestedAction.RESCHEDULE: LeadState.QUALIFYING,
     SuggestedAction.CLOSE: LeadState.CLOSED,
     SuggestedAction.BLOCK: LeadState.BLOCKED,
 }

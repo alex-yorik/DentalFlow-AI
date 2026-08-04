@@ -11,6 +11,7 @@ from src.followup import _insert_task, _acquire_task, _update_task_status, _get_
 from src.leads.models import Lead, LeadState
 from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
+from src.storage.appointment_repository import create_appointment
 
 
 def _make_task(lead_id: str, chat_id: int, **overrides) -> FollowUpTask:
@@ -37,6 +38,7 @@ def _make_engine_config(overrides: dict | None = None) -> MagicMock:
     config.client.followup.max_retries = 2
     config.client.followup.templates = {
         "initial": "Test initial {name} {service_interest}",
+        "existing_appointment": "Test existing {name}",
         "reminder": "Test reminder",
         "final": "Test final",
     }
@@ -200,6 +202,43 @@ async def test_send_followup_full_cycle_complete(db):
 
     lead_updated = await get_lead_by_chat_id(lead.channel_user_id)
     assert lead_updated.state == LeadState.CLOSED, "lead should be closed after max retries"
+
+
+@pytest.mark.asyncio
+async def test_get_template_existing_appointment_initial():
+    config = _make_engine_config()
+    engine = FollowUpEngine(config, MagicMock())
+    initial = engine._get_template(config.client.followup, 0, has_appointment=False)
+    existing = engine._get_template(config.client.followup, 0, has_appointment=True)
+    assert initial == "Test initial {name} {service_interest}"
+    assert existing == "Test existing {name}"
+    assert initial != existing
+
+
+@pytest.mark.asyncio
+async def test_send_followup_uses_existing_appointment_template(db):
+    lead = await create_lead(504)
+    lead.name = "John"
+    lead.phone = "555-0000"
+    lead.service_interest = "Cleaning"
+    apply_transition(lead, LeadState.FOLLOWUP_PENDING)
+    await update_lead(lead)
+    await create_appointment(lead)
+
+    now = datetime.now(timezone.utc)
+    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    await _insert_task(task)
+
+    config = _make_engine_config()
+    bot = MagicMock()
+    bot.send_message = AsyncMock()
+    engine = FollowUpEngine(config, bot)
+
+    await engine._send_followup(task)
+
+    bot.send_message.assert_awaited_once()
+    sent = bot.send_message.call_args[1]["text"]
+    assert sent == "Test existing John", "existing appointment template should be used instead of initial"
 
 
 # ─── CRITICAL 3: send_followup error recovery ────────────────────────────────

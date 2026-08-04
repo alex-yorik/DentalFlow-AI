@@ -167,3 +167,37 @@ class TestLLMClient:
         assert messages[0]["content"] == "Be helpful"
         assert messages[1]["role"] == "user"
         assert messages[1]["content"] == "Hello"
+
+    async def test_recent_messages_sent_as_turns(self):
+        mock_parse = AsyncMock(return_value=_make_mock_response(
+            AIOutput(
+                intent="lead", confidence=0.9, reply_text="Sure",
+                is_lead=True, extracted_fields=[], missing_fields=["phone"],
+                suggested_action="ask_field", safe=True,
+                crm_write_allowed=False, schedule_followup=False,
+                escalation_needed=False,
+            )
+        ))
+        mock_client = AsyncMock()
+        mock_client.beta.chat.completions.parse = mock_parse
+
+        client = LLMClient(client=mock_client)
+        await client.analyze(
+            AIInput(
+                system_prompt="Be helpful",
+                user_message="My number is 555-0100",
+                recent_messages=[
+                    {"role": "user", "text": "I want to book"},
+                    {"role": "assistant", "text": "What's your phone?"},
+                ],
+            )
+        )
+
+        _, kwargs = mock_parse.call_args
+        messages = kwargs["messages"]
+        assert messages == [
+            {"role": "system", "content": "Be helpful"},
+            {"role": "user", "content": "I want to book"},
+            {"role": "assistant", "content": "What's your phone?"},
+            {"role": "user", "content": "My number is 555-0100"},
+        ]

@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from src.config.loader import AppConfig, QualificationConfig
-from src.llm.contracts import AIInput
+from src.llm.contracts import AIInput, Intent
 from src.llm.client import LLMClient
 from src.rules.validator import validate_ai_output
 from src.rules.safety import check_safety
@@ -14,6 +14,12 @@ from src.integrations.notifications import notify_staff
 from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.followup import FollowUpEngine
 from src.monitoring.metrics import metrics
+from src.storage.conversation_repository import append_message, get_recent_messages
+from src.storage.appointment_repository import (
+    find_existing_appointment,
+    create_appointment,
+    update_appointment_datetime,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +44,7 @@ def sanitize_input(text: str | None) -> str | None:
     return stripped[:_MAX_INPUT_LENGTH]
 
 
-def build_context(lead: Lead) -> str:
+def build_context(lead: Lead, existing_appointment: dict | None = None) -> str:
     known = []
     for src, dst in _field_map.items():
         val = getattr(lead, dst, None)
@@ -49,7 +55,26 @@ def build_context(lead: Lead) -> str:
         parts.append(f"Known: {', '.join(known)}")
     if lead.conversation_summary:
         parts.append(f"Summary: {lead.conversation_summary}")
+    if existing_appointment:
+        when = existing_appointment.get("appointment_datetime") or "unspecified"
+        service = existing_appointment.get("service") or ""
+        parts.append(
+            f"Existing appointment: {service} on {when} — user asked to reschedule; confirm the change and ask for the new date/time"
+        )
     return "; ".join(parts)
+
+
+def _known_missing(lead: Lead, field: str) -> bool:
+    mapping = {
+        "name": "name",
+        "phone": "phone",
+        "email": "email",
+        "service": "service_interest",
+        "service_interest": "service_interest",
+        "preferred_time": "preferred_time",
+    }
+    attr = mapping.get(field)
+    return bool(attr and getattr(lead, attr, None))
 
 
 def apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: str) -> None:
@@ -105,6 +130,10 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, sc
         await crm.add_note(lead_id, f"Lead from {lead.channel_type}: {lead.conversation_summary[:200]}")
         await crm.update_stage(lead_id, "new")
         await notify_staff(config, lead, bot_for_notifications)
+        try:
+            await create_appointment(lead)
+        except Exception as e:
+            logger.error("Failed to create appointment for lead %s: %s", lead.id, e)
 
         if schedule_followup and followup_engine:
             t = validate_transition(LeadState.CRM_WRITE, LeadState.FOLLOWUP_PENDING, lead, config.client.qualification)
@@ -139,10 +168,16 @@ async def process_message(
         )
         return
 
+    existing_appointment = await find_existing_appointment(lead.name, lead.phone)
+
+    recent_messages = await get_recent_messages(lead.channel_user_id, limit=10)
+    await append_message(lead.channel_user_id, "user", user_text)
+
     ai_input = AIInput(
         system_prompt=config.client.prompts.system,
         user_message=user_text,
-        conversation_context=build_context(lead),
+        conversation_context=build_context(lead, existing_appointment),
+        recent_messages=recent_messages,
     )
 
     output = await llm_client.analyze(ai_input)
@@ -184,6 +219,17 @@ async def process_message(
 
     apply_extracted_fields(lead, output, user_text, output.reply_text)
 
+    output.missing_fields = [f for f in output.missing_fields if not _known_missing(lead, f)]
+
+    if output.intent == Intent.RESCHEDULE and existing_appointment:
+        new_time = lead.preferred_time
+        if new_time:
+            try:
+                await update_appointment_datetime(existing_appointment["id"], new_time)
+                logger.info("Rescheduled appointment %s for chat %s to %s", existing_appointment["id"], msg.channel_user_id, new_time)
+            except Exception as e:
+                logger.error("Failed to update appointment %s: %s", existing_appointment["id"], e)
+
     if output.is_lead and lead.state == LeadState.NEW:
         t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)
         if t.allowed:
@@ -208,3 +254,7 @@ async def process_message(
     await update_lead(lead)
     metrics.inc("messages_processed")
     await outgoing.send_message(msg.channel_user_id, output.reply_text)
+    try:
+        await append_message(lead.channel_user_id, "assistant", output.reply_text)
+    except Exception as e:
+        logger.error("Failed to record assistant message for chat %s: %s", msg.channel_user_id, e)
