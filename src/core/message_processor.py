@@ -77,6 +77,27 @@ def _known_missing(lead: Lead, field: str) -> bool:
     return bool(attr and getattr(lead, attr, None))
 
 
+def _build_confirmation_reply(appointment: dict, new_time: str) -> str:
+    service = appointment.get("service") or "запись"
+    when = appointment.get("appointment_datetime") or "уточнённое время"
+    return (
+        f"У вас есть запись на {service} на {when}. "
+        f"Это ваша запись? Подтвердите перенос на {new_time}."
+    )
+
+
+def _confirmation_pending(recent_messages, appointment: dict) -> bool:
+    if not recent_messages:
+        return False
+    last = recent_messages[-1]
+    if getattr(last, "role", None) != "assistant":
+        return False
+    service = appointment.get("service") or "запись"
+    when = appointment.get("appointment_datetime") or "уточнённое время"
+    marker = f"У вас есть запись на {service} на {when}."
+    return marker in getattr(last, "text", "")
+
+
 def apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: str) -> None:
     for field in output.extracted_fields:
         if field.confidence < 0.5:
@@ -168,15 +189,13 @@ async def process_message(
         )
         return
 
-    existing_appointment = await find_existing_appointment(lead.name, lead.phone)
-
     recent_messages = await get_recent_messages(lead.channel_user_id, limit=10)
     await append_message(lead.channel_user_id, "user", user_text)
 
     ai_input = AIInput(
         system_prompt=config.client.prompts.system,
         user_message=user_text,
-        conversation_context=build_context(lead, existing_appointment),
+        conversation_context=build_context(lead),
         recent_messages=recent_messages,
     )
 
@@ -221,14 +240,18 @@ async def process_message(
 
     output.missing_fields = [f for f in output.missing_fields if not _known_missing(lead, f)]
 
-    if output.intent == Intent.RESCHEDULE and existing_appointment:
+    if output.intent == Intent.RESCHEDULE and lead.phone:
+        existing_appointment = await find_existing_appointment(lead.name, lead.phone)
         new_time = lead.preferred_time
-        if new_time:
-            try:
-                await update_appointment_datetime(existing_appointment["id"], new_time)
-                logger.info("Rescheduled appointment %s for chat %s to %s", existing_appointment["id"], msg.channel_user_id, new_time)
-            except Exception as e:
-                logger.error("Failed to update appointment %s: %s", existing_appointment["id"], e)
+        if existing_appointment and new_time:
+            if _confirmation_pending(recent_messages, existing_appointment):
+                try:
+                    await update_appointment_datetime(existing_appointment["id"], new_time)
+                    logger.info("Rescheduled appointment %s for chat %s to %s", existing_appointment["id"], msg.channel_user_id, new_time)
+                except Exception as e:
+                    logger.error("Failed to update appointment %s: %s", existing_appointment["id"], e)
+            else:
+                output.reply_text = _build_confirmation_reply(existing_appointment, new_time)
 
     if output.is_lead and lead.state == LeadState.NEW:
         t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)

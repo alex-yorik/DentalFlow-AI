@@ -54,7 +54,15 @@ async def _find_by_name(name: str) -> Optional[dict]:
         await conn.close()
 
 
-async def find_existing_appointment(name: Optional[str], phone: Optional[str]) -> Optional[dict]:
+async def find_existing_appointment(
+    name: Optional[str],
+    phone: Optional[str],
+    require_phone: bool = True,
+) -> Optional[dict]:
+    if require_phone:
+        if not phone:
+            return None
+        return await _find_by_phone(phone)
     if phone:
         row = await _find_by_phone(phone)
         if row:

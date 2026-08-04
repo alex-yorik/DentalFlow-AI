@@ -102,24 +102,56 @@ class TestDialogContext:
 
 
 class TestReschedule:
-    async def test_reschedule_context_includes_existing_appointment(self, demo_app_config, db):
+    async def test_lookup_not_called_on_regular_message(self, demo_app_config, db, monkeypatch):
         lead = _lead()
-        await create_appointment(lead)
-        client = _RecorderClient(_output(intent=Intent.RESCHEDULE, suggested_action=SuggestedAction.RESCHEDULE))
-        await process_message(_msg("I want to reschedule"), _Outgoing(), lead, demo_app_config, client)
+        client = _RecorderClient(_output())
+        called = []
 
-        assert "Existing appointment" in client.inputs[0].conversation_context
+        async def fake_find(*args, **kwargs):
+            called.append(args)
+            return None
 
-    async def test_reschedule_updates_appointment_datetime(self, demo_app_config, db):
-        lead = _lead()
-        await create_appointment(lead)
+        monkeypatch.setattr("src.core.message_processor.find_existing_appointment", fake_find)
+        await process_message(_msg("how much does cleaning cost"), _Outgoing(), lead, demo_app_config, client)
+
+        assert called == []
+
+    async def test_reschedule_asks_confirmation_without_changing(self, demo_app_config, db):
+        lead = _lead(service=None)
+        await create_appointment(lead, appointment_datetime="2026-08-10 10:00")
+        out = _Outgoing()
         client = _RecorderClient(_output(
             intent=Intent.RESCHEDULE,
             suggested_action=SuggestedAction.RESCHEDULE,
             is_lead=True,
             extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
         ))
-        await process_message(_msg("bring it to 2026-08-11 09:00"), _Outgoing(), lead, demo_app_config, client)
+        await process_message(_msg("bring it to 2026-08-11 09:00"), out, lead, demo_app_config, client)
+
+        assert "Это ваша запись?" in out.sent[-1]
+        found = await find_existing_appointment(name="John", phone="555-0100")
+        assert found["appointment_datetime"] == "2026-08-10 10:00"
+
+    async def test_reschedule_updates_appointment_datetime_after_confirmation(self, demo_app_config, db):
+        lead = _lead(service=None)
+        await create_appointment(lead, appointment_datetime="2026-08-10 10:00")
+        out = _Outgoing()
+        client = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=True,
+            extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
+        ))
+        await process_message(_msg("bring it to 2026-08-11 09:00"), out, lead, demo_app_config, client)
+        assert "Это ваша запись?" in out.sent[-1]
+
+        client2 = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=True,
+            extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
+        ))
+        await process_message(_msg("yes, confirm"), _Outgoing(), lead, demo_app_config, client2)
 
         found = await find_existing_appointment(name="John", phone="555-0100")
         assert found["appointment_datetime"] == "2026-08-11 09:00"
