@@ -105,3 +105,8 @@ The agent is NOT permitted to open:
 - docs/PROJECT_STATE.md
 - Any other test file
 - Any other source module
+###
+- Rate limit burst недетерминирован: после простоя nginx накапливает квоту,
+  поэтому burst=25 может пройти целиком (25×200), потом 429. Это ожидаемо.
+- Watchdog ходит напрямую на http://web:8080/health (минуя nginx),
+  поэтому rate limit на /health его не блокирует
