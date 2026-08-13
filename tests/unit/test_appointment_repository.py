@@ -37,11 +37,11 @@ class TestAppointmentRepository:
         found = await find_existing_appointment(name="John", phone=None)
         assert found is None
 
-    async def test_name_lookup_opt_in(self, db):
-        await create_appointment(_lead())
-        found = await find_existing_appointment(name="John", phone=None, require_phone=False)
-        assert found is not None
-        assert found["appointment_datetime"] == "2026-08-10 10:00"
+    async def test_no_phone_cannot_leak_same_name_record(self, db):
+        await create_appointment(_lead(name="John", phone="555-0100", service="Cleaning"))
+        await create_appointment(_lead(name="John", phone="555-0200", service="Whitening"))
+        found = await find_existing_appointment(name="John", phone=None)
+        assert found is None
 
     async def test_name_collision_does_not_leak_other_patient(self, db):
         await create_appointment(_lead(name="John", phone="555-0100", service="Cleaning"))

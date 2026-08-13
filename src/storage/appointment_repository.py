@@ -34,44 +34,13 @@ async def _find_by_phone(phone: str) -> Optional[dict]:
         await conn.close()
 
 
-async def _find_by_name(name: str) -> Optional[dict]:
-    try:
-        conn = await database.get_connection()
-    except StorageError:
-        return None
-    try:
-        cursor = await conn.execute(
-            """SELECT * FROM appointments
-               WHERE name = ? AND status = ? ORDER BY created_at DESC LIMIT 1""",
-            (name, STATUS_SCHEDULED),
-        )
-        row = await cursor.fetchone()
-        return dict(row) if row else None
-    except (aiosqlite.Error, StorageError) as e:
-        logger.error("StorageError: appointment by name failed: %s", e)
-        return None
-    finally:
-        await conn.close()
-
-
 async def find_existing_appointment(
     name: Optional[str],
     phone: Optional[str],
-    require_phone: bool = True,
 ) -> Optional[dict]:
-    if require_phone:
-        if not phone:
-            return None
-        return await _find_by_phone(phone)
-    if phone:
-        row = await _find_by_phone(phone)
-        if row:
-            return row
-    if name:
-        row = await _find_by_name(name)
-        if row:
-            return row
-    return None
+    if not phone:
+        return None
+    return await _find_by_phone(phone)
 
 
 async def create_appointment(lead: Lead, appointment_datetime: Optional[str] = None) -> str:
