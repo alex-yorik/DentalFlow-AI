@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -13,6 +14,11 @@ from src.leads.models import LeadState
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# WhatsApp Business API integration (not yet configured)
+# Requires: WhatsApp Business Account + Meta Developer setup
+# See: https://developers.facebook.com/docs/whatsapp/business-api/
+VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "dentalflow_verify_token")
 
 _response_store: dict[str, list[dict]] = {}
 
@@ -80,8 +86,7 @@ async def whatsapp_webhook(request: Request, body: WhatsAppMessage) -> dict:
 
 @router.get("/whatsapp/webhook")
 async def whatsapp_verify(hub_mode: str = "", hub_verify_token: str = "", hub_challenge: str = "") -> dict | str:
-    expected_token = "dentalflow_verify_token"
-    if hub_mode == "subscribe" and hub_verify_token == expected_token:
+    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         logger.info("WhatsApp webhook verified")
         return hub_challenge
     logger.warning("WhatsApp webhook verification failed: mode=%s, token=%s", hub_mode, hub_verify_token)
