@@ -25,6 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install -r requirements-dev.txt
           pip install ruff mypy
 
       - name: Lint
@@ -39,6 +40,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python -m pytest tests/ -v --tb=short
+
+      - name: Security scan (bandit, advisory)
+        run: bandit -r src/ -ll -q || true
 
       - uses: docker/setup-buildx-action@v3
 

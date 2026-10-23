@@ -1,3 +1,4 @@
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -135,9 +136,13 @@ class TestHealthcheckScript:
         assert result.returncode == 1
 
     def test_exit_1_when_connection_refused(self):
+        s = socket.socket()
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+        s.close()
         result = subprocess.run(
             [sys.executable, str(HEALTHCHECK_SCRIPT)],
-            env={"WEB_HOST": "localhost", "WEB_PORT": "19999"},
+            env={"WEB_HOST": "127.0.0.1", "WEB_PORT": str(port)},
             capture_output=True,
         )
         assert result.returncode == 1
