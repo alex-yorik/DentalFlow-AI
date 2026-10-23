@@ -1,76 +1,118 @@
 # DentalFlow AI
 
-AI-ресепшн и система автоматизации лидов для клиник. Telegram-бот общается с пациентами как виртуальный администратор, отвечает на вопросы по услугам и расписанию, собирает контактные данные, квалифицирует лида по скорингу и передаёт его в CRM. Бизнес-логика полностью вынесена в конфигурацию клиента (JSON), поэтому бота можно перенастроить на другую клинику без изменения кода.
+[![CI](https://github.com/alex-yorik/DentalFlow-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/alex-yorik/DentalFlow-AI/actions/workflows/ci.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![License](https://img.shields.io/badge/license-All%20rights%20reserved-red)
 
-Демо-конфигурация — клиника **Bright Smile Dental** (демо-клиент `demo_dental`).
+AI-powered dental clinic receptionist and lead qualification system. A Telegram bot communicates with patients as a virtual front-desk assistant: it answers questions about services and hours, collects contact details, qualifies leads with a scoring engine, and hands them off to a CRM. All business logic lives in per-client JSON configuration, so the bot can be reconfigured for a different clinic without touching the code.
 
-## Функциональность
-- **AI-ресепшн** — отвечает на вопросы о часах работы, адресе, услугах и FAQ на основе конфигурации клиента
-- **Квалификация лидов** — собирает имя, телефон, интерес к услуге; скоринг (правила + баллы) определяет готовность лида к записи
-- **State machine лидов** — явный конечный автомат жизненного цикла лида от `new` до `closed`
-- **CRM-интеграция** — интерфейс провайдера, в комплекте mock-провайдер (готов к HubSpot/Salesforce)
-- **Follow-up движок** — фоновые напоминания с настраиваемыми задержками и повторами
-- **Безопасность диалога** — блокировка запрещённых тем (цены, диагнозы, рецепты), лимит отказов, безопасный дефолтный ответ
-- **Веб-канал** — тот же обработчик сообщений доступен через FastAPI (Telegram — первый канал, архитектура поддерживает web/WhatsApp)
-- **Мониторинг и бэкапы** — watchdog, heartbeat, алерты в Telegram, резервное копирование БД
+Demo configuration — the **Bright Smile Dental** clinic (demo client `demo_dental`).
 
-## Стек технологий
+## Features
+- **AI receptionist** — answers questions about hours, address, services, and FAQ based on the client configuration
+- **Lead qualification** — collects name, phone, and service interest; a scoring engine (rules + points) determines lead readiness for booking
+- **Lead state machine** — an explicit finite-state machine for the lead lifecycle from `new` to `closed`
+- **CRM integration** — provider interface with a bundled mock provider (ready for HubSpot/Salesforce)
+- **Follow-up engine** — background reminders with configurable delays and retries
+- **Conversation safety** — blocks restricted topics (prices, diagnoses, prescriptions), refusal limit, safe default responses
+- **Web channel** — the same message processor is exposed via FastAPI (Telegram is the first channel; the architecture supports web/WhatsApp)
+- **Monitoring and backups** — watchdog, heartbeat, Telegram alerts, scheduled database backups
+
+## Tech Stack
 - Python 3.12, async/await
-- python-telegram-bot 20.x (Telegram-канал)
-- FastAPI + Uvicorn (веб-канал), Nginx (прокси + rate-limit)
-- OpenAI API (structured output с Pydantic)
-- SQLite (aiosqlite, WAL) + Alembic (миграции)
-- Pydantic v2 (валидация конфига)
+- python-telegram-bot 20.x (Telegram channel)
+- FastAPI + Uvicorn (web channel), Nginx (proxy + rate limiting)
+- OpenAI API (structured output with Pydantic)
+- SQLite (aiosqlite, WAL) + Alembic (migrations)
+- Pydantic v2 (config validation)
 - Docker + docker-compose
-- pytest / pytest-asyncio (тесты), ruff / mypy (линт и типы)
+- pytest / pytest-asyncio (tests), ruff / mypy (linting and typing)
 
-## Архитектура
+## Architecture
 
-Проект разделён на изолированные подсистемы (`src/`), каждый процесс — отдельный entrypoint в docker-compose:
+The project is split into isolated subsystems (`src/`); each process is a separate entrypoint in docker-compose:
 
 ```
-Telegram-канал (bot.py) ─┐
-Веб-канал (FastAPI) ─────┼─▶ message_processor ─▶ rules/safety → LLM (OpenAI)
-                         │          │
-                         ▼          ▼
-                  lead state machine   conversation store (SQLite)
-                         │
-                         ▼
-                    CRM provider (интерфейс)
+Telegram channel (bot.py) ─┐
+Web channel (FastAPI) ─────┼─▶ message_processor ─▶ rules/safety → LLM (OpenAI)
+                           │          │
+                           ▼          ▼
+                    lead state machine   conversation store (SQLite)
+                           │
+                           ▼
+                      CRM provider (interface)
 ```
 
-Сервисы (docker-compose):
-- **telegram** — python-telegram-bot, приём и обработка сообщений
-- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (за nginx)
-- **followup** — фоновые напоминания и повторные касания
-- **watchdog** — проверка здоровья сервисов, алерты в Telegram
-- **backup** — резервное копирование SQLite через sqlite3 backup API
-- **nginx** — TLS, заголовки безопасности, rate-limit
+Services (docker-compose):
+- **telegram** — python-telegram-bot, message intake and processing
+- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (behind nginx)
+- **followup** — background reminders and follow-up touches
+- **watchdog** — service health checks, Telegram alerts
+- **backup** — SQLite backups via the sqlite3 backup API
+- **nginx** — TLS, security headers, rate limiting
 
-Данные: SQLite в `data/` (volume), схема — Alembic-миграции (`src/storage/alembic`). Конфигурация клиента — JSON в `clients/<client>/` (business, services, faq, rules, qualification, followup, prompts). `src/main.py` — только dev-точка входа, продакшен запускается через отдельные entrypoints.
+Data: SQLite in `data/` (volume), schema managed by Alembic migrations (`src/storage/alembic`). Client configuration is JSON in `clients/<client>/` (business, services, faq, rules, qualification, followup, prompts). `src/main.py` is a dev-only entrypoint; production runs through dedicated entrypoints.
 
-## Безопасность
-Проект прошёл полный аудит безопасности (2026-08-07). Реализовано:
-- Fail-closed аутентификация конфигурации — обязательные переменные (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) проверяются при старте, дефолтов нет
-- Rate-limit на nginx: 10 req/min на `/api/chat` (burst=20), 30 req/min на `/health` и `/metrics` (ответ 429)
-- Заголовки безопасности: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
-- Безопасность диалога: блокировка запрещённых фраз, лимит отказов, безопасные сообщения по умолчанию
-- WAL + `busy_timeout=5000` (блокировки БД устранены)
-- Бэкапы по расписанию (по умолчанию каждые 6 ч) с ротацией (по умолчанию 7 дней)
-- .dockerignore + .gitignore — `.env`, `data/`, тесты и docs вне Docker-образа и git
-- Multi-container деплой (build → up -d) без даунтайма
+## Security
+The project passed a full security audit (2026-08-07). Implemented:
+- Fail-closed configuration authentication — required variables (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are verified at startup, no defaults
+- Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` and `/metrics` (HTTP 429)
+- Security headers: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
+- Conversation safety: blocked phrases, refusal limit, safe messages by default
+- WAL + `busy_timeout=5000` (database locking eliminated)
+- Scheduled backups (every 6 h by default) with rotation (7 days by default)
+- .dockerignore + .gitignore — `.env`, `data/`, tests, and docs excluded from the Docker image and git
+- Multi-container deployment (build → up -d) with zero downtime
 
-Все секреты (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) хранятся в `.env`, не в коде.
+All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
-## Установка
-1. Скопируй `.env.example` в `.env`
-2. Заполни `TELEGRAM_BOT_TOKEN` и `OPENAI_API_KEY` (остальные параметры уже имеют дефолты)
+## Installation
+1. Copy `.env.example` to `.env`
+2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
 3. `docker-compose up -d`
 
-## Деплой
+## Deployment
 ```bash
 docker-compose build && docker-compose up -d
 docker-compose logs -f --tail=30
 ```
 
-После первого деплоя: `chown -R <uid контейнера> data/` (иначе SQLite откроется как read-only).
+After the first deployment: `chown -R <container uid> data/` (otherwise SQLite will open as read-only).
+
+## Tests
+
+The project includes 31 test files (unit + integration):
+
+```bash
+pip install -r requirements.txt
+pytest -q
+```
+
+## Scope & Authorship
+
+This project was designed and implemented entirely by the author:
+Telegram bot, FastAPI backend, WhatsApp adapter stub, LLM integration,
+lead state machine, CRM provider interface, follow-up engine, monitoring,
+tests, and CI/CD.
+
+## Limitations
+
+This is a working prototype. Current limitations include:
+- WhatsApp Business API integration is a stub (requires business account)
+- CRM provider is mocked (real integration depends on client's CRM)
+- LLM responses may require human review for critical decisions
+- Not designed for high-volume production without scaling
+
+## License
+
+All rights reserved.
+
+This repository is published as a portfolio demonstration of my work in
+AI-powered business automation for dental clinics.
+
+The code is provided for review and evaluation purposes only.
+No commercial use, redistribution, or modification is permitted without
+explicit written permission from the author.
+
+For commercial use, licensing discussions, or custom development based
+on this architecture — please contact me directly.
