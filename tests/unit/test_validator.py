@@ -1,4 +1,4 @@
-from src.llm.contracts import AIOutput, Intent, SuggestedAction, ExtractedField
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.config.loader import RulesConfig
 from src.rules.validator import validate_ai_output
 

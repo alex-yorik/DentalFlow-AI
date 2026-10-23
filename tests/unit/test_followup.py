@@ -7,8 +7,8 @@ import pytest
 
 from src.followup import FollowUpEngine
 from src.followup.models import FollowUpTask
-from src.followup import _insert_task, _acquire_task, _update_task_status, _get_due_tasks, _cancel_tasks_by_lead
-from src.leads.models import Lead, LeadState
+from src.followup import _insert_task, _acquire_task, _get_due_tasks, _cancel_tasks_by_lead
+from src.leads.models import LeadState
 from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
 from src.storage.appointment_repository import create_appointment

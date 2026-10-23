@@ -1,7 +1,6 @@
 import asyncio
 
 import inspect
-import pytest
 from fastapi.testclient import TestClient
 
 from src.entrypoints import web

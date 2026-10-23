@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
 
 from src.leads.models import Lead, LeadState
 from src.leads.state_machine import (

@@ -19,6 +19,9 @@
     "error_out_of_scope": "I'm sorry, I can only answer questions about our dental services. Would you like to know about our treatments or schedule a visit?",
     "error_unsafe": "I'm sorry, I can't provide that information. Please contact the clinic directly for any urgent concerns.",
     "error_missing_token": "System configuration error. Please contact the administrator.",
+    "reschedule_ask_phone": "I can help you reschedule. What phone number is on your appointment?",
+    "reschedule_ask_time": "What date and time would you like to move your appointment to?",
+    "reschedule_ack": "Got it — you'd like to move your appointment to {preferred_time}. We will check availability and confirm with you.",
     "followup_complete": "Follow-up completed for {name}\nPhone: {phone}\nService: {service}\nLead did not respond — moved to closed."
   }
 }

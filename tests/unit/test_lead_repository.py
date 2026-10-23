@@ -1,4 +1,4 @@
-from src.leads.models import Lead, LeadState
+from src.leads.models import LeadState
 from src.leads.repository import (
     create_lead,
     get_lead_by_chat_id,

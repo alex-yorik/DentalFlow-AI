@@ -56,6 +56,20 @@ class TestStartCommandTrailingText:
         hm.assert_awaited_once_with(update, context)
 
     @pytest.mark.asyncio
+    async def test_start_with_inline_text_processes_message(self):
+        update = MagicMock()
+        update.message.reply_text = AsyncMock()
+        update.message.text = "/start I'm Petrov Petr +79990000011, I want to reschedule"
+        context = self._make_ctx()
+
+        with patch("src.channels.telegram.handlers.handle_message", new=AsyncMock()) as hm:
+            await start_command(update, context)
+
+        assert update.message.text == "I'm Petrov Petr +79990000011, I want to reschedule"
+        hm.assert_awaited_once_with(update, context)
+        update.message.reply_text.assert_awaited_once_with("Hello!")
+
+    @pytest.mark.asyncio
     async def test_start_without_text_only_welcomes(self):
         update = MagicMock()
         update.message.reply_text = AsyncMock()

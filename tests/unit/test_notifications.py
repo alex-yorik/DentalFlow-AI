@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.config.loader import AppConfig, ClientConfig, BusinessInfo, Service, FAQItem, RulesConfig, QualificationConfig, FollowUpConfig, PromptCollection
+from src.config.loader import AppConfig, ClientConfig, BusinessInfo, RulesConfig, QualificationConfig, FollowUpConfig, PromptCollection
 from src.integrations.notifications import notify_staff_followup_complete
 from src.leads.models import Lead, LeadState
 

@@ -1,4 +1,3 @@
-import pytest
 
 from src.storage.conversation_repository import (
     append_message,

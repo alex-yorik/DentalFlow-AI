@@ -1,7 +1,4 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
-
-import pytest
 
 from src.core.message_processor import process_message
 from src.channels.base import IncomingMessage
@@ -102,56 +99,91 @@ class TestDialogContext:
 
 
 class TestReschedule:
-    async def test_lookup_not_called_on_regular_message(self, demo_app_config, db, monkeypatch):
-        lead = _lead()
-        client = _RecorderClient(_output())
-        called = []
-
-        async def fake_find(*args, **kwargs):
-            called.append(args)
-            return None
-
-        monkeypatch.setattr("src.core.message_processor.find_existing_appointment", fake_find)
-        await process_message(_msg("how much does cleaning cost"), _Outgoing(), lead, demo_app_config, client)
-
-        assert called == []
-
-    async def test_reschedule_asks_confirmation_without_changing(self, demo_app_config, db):
+    async def test_regular_message_does_not_touch_appointment(self, demo_app_config, db):
         lead = _lead(service=None)
         await create_appointment(lead, appointment_datetime="2026-08-10 10:00")
-        out = _Outgoing()
-        client = _RecorderClient(_output(
-            intent=Intent.RESCHEDULE,
-            suggested_action=SuggestedAction.RESCHEDULE,
-            is_lead=True,
-            extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
-        ))
-        await process_message(_msg("bring it to 2026-08-11 09:00"), out, lead, demo_app_config, client)
+        client = _RecorderClient(_output())
+        await process_message(_msg("how much does cleaning cost"), _Outgoing(), lead, demo_app_config, client)
 
-        assert "Это ваша запись?" in out.sent[-1]
         found = await find_existing_appointment(name="John", phone="555-0100")
         assert found["appointment_datetime"] == "2026-08-10 10:00"
 
-    async def test_reschedule_updates_appointment_datetime_after_confirmation(self, demo_app_config, db):
+    async def test_reschedule_without_phone_asks_for_phone(self, demo_app_config, db):
+        lead = _lead(phone=None)
+        out = _Outgoing()
+        client = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=False,
+            extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
+        ))
+        await process_message(_msg("move it to 2026-08-11 09:00"), out, lead, demo_app_config, client)
+
+        expected = demo_app_config.client.business.messages["reschedule_ask_phone"]
+        assert out.sent[-1] == expected
+        assert "phone" in client.output.missing_fields
+
+    async def test_reschedule_with_phone_and_slot_acknowledges_requested_move(self, demo_app_config, db):
         lead = _lead(service=None)
         await create_appointment(lead, appointment_datetime="2026-08-10 10:00")
         out = _Outgoing()
         client = _RecorderClient(_output(
             intent=Intent.RESCHEDULE,
             suggested_action=SuggestedAction.RESCHEDULE,
-            is_lead=True,
+            is_lead=False,
             extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
         ))
         await process_message(_msg("bring it to 2026-08-11 09:00"), out, lead, demo_app_config, client)
-        assert "Это ваша запись?" in out.sent[-1]
 
-        client2 = _RecorderClient(_output(
+        expected = demo_app_config.client.business.messages["reschedule_ack"].replace(
+            "{preferred_time}", "2026-08-11 09:00"
+        )
+        assert out.sent[-1] == expected
+        assert "you'd like to move your appointment to 2026-08-11 09:00" in out.sent[-1]
+        assert "current appointment" not in out.sent[-1]
+        found = await find_existing_appointment(name="John", phone="555-0100")
+        assert found["appointment_datetime"] == "2026-08-10 10:00"
+
+    async def test_reschedule_live_sequence_phone_then_slot(self, demo_app_config, db):
+        lead = _lead(phone=None)
+        messages = demo_app_config.client.business.messages
+        out = _Outgoing()
+
+        first = _RecorderClient(_output(
             intent=Intent.RESCHEDULE,
             suggested_action=SuggestedAction.RESCHEDULE,
-            is_lead=True,
+            is_lead=False,
+        ))
+        await process_message(_msg("I want to reschedule"), out, lead, demo_app_config, first)
+        assert out.sent[-1] == messages["reschedule_ask_phone"]
+
+        second = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=False,
+            extracted_fields=[ExtractedField(field_name="phone", value="555-0100", confidence=0.95)],
+        ))
+        await process_message(_msg("+1 555 0100"), out, lead, demo_app_config, second)
+        assert out.sent[-1] == messages["reschedule_ask_time"]
+
+        third = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=False,
             extracted_fields=[ExtractedField(field_name="preferred_time", value="2026-08-11 09:00", confidence=0.95)],
         ))
-        await process_message(_msg("yes, confirm"), _Outgoing(), lead, demo_app_config, client2)
+        await process_message(_msg("2026-08-11 09:00"), out, lead, demo_app_config, third)
+        assert "you'd like to move your appointment to 2026-08-11 09:00" in out.sent[-1]
 
-        found = await find_existing_appointment(name="John", phone="555-0100")
-        assert found["appointment_datetime"] == "2026-08-11 09:00"
+    async def test_new_reschedule_does_not_reuse_stale_preferred_time(self, demo_app_config, db):
+        lead = _lead()
+        lead.preferred_time = "2026-08-10 10:00"
+        out = _Outgoing()
+        client = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=False,
+        ))
+        await process_message(_msg("I need to reschedule"), out, lead, demo_app_config, client)
+
+        assert out.sent[-1] == demo_app_config.client.business.messages["reschedule_ask_time"]

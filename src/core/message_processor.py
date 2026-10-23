@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timezone
 
 from src.config.loader import AppConfig, QualificationConfig
 from src.llm.contracts import AIInput, Intent
@@ -15,11 +14,7 @@ from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.followup import FollowUpEngine
 from src.monitoring.metrics import metrics
 from src.storage.conversation_repository import append_message, get_recent_messages
-from src.storage.appointment_repository import (
-    find_existing_appointment,
-    create_appointment,
-    update_appointment_datetime,
-)
+from src.storage.appointment_repository import create_appointment
 
 logger = logging.getLogger(__name__)
 
@@ -77,25 +72,56 @@ def _known_missing(lead: Lead, field: str) -> bool:
     return bool(attr and getattr(lead, attr, None))
 
 
-def _build_confirmation_reply(appointment: dict, new_time: str) -> str:
-    service = appointment.get("service") or "запись"
-    when = appointment.get("appointment_datetime") or "уточнённое время"
-    return (
-        f"У вас есть запись на {service} на {when}. "
-        f"Это ваша запись? Подтвердите перенос на {new_time}."
-    )
+def _extracted_value(output, field_name: str) -> str | None:
+    best_value = None
+    best_confidence = 0.0
+    for field in output.extracted_fields:
+        if field.field_name != field_name or field.confidence < 0.5:
+            continue
+        if field.confidence >= best_confidence:
+            best_value = field.value
+            best_confidence = field.confidence
+    return best_value
 
 
-def _confirmation_pending(recent_messages, appointment: dict) -> bool:
-    if not recent_messages:
+def _reschedule_flow_active(recent_messages, messages: dict[str, str]) -> bool:
+    markers = [
+        messages.get("reschedule_ask_phone", ""),
+        messages.get("reschedule_ask_time", ""),
+    ]
+    ack = messages.get("reschedule_ack", "")
+    if ack:
+        markers.append(ack.split("{preferred_time}", 1)[0])
+    markers = [m for m in markers if m]
+    if not markers:
         return False
-    last = recent_messages[-1]
-    if getattr(last, "role", None) != "assistant":
-        return False
-    service = appointment.get("service") or "запись"
-    when = appointment.get("appointment_datetime") or "уточнённое время"
-    marker = f"У вас есть запись на {service} на {when}."
-    return marker in getattr(last, "text", "")
+    for message in recent_messages[-6:]:
+        if getattr(message, "role", None) != "assistant":
+            continue
+        text = getattr(message, "text", "")
+        if any(marker in text for marker in markers):
+            return True
+    return False
+
+
+def _apply_reschedule_reply(output, lead: Lead, recent_messages, messages: dict[str, str]) -> None:
+    requested_time = _extracted_value(output, "preferred_time")
+
+    if requested_time:
+        lead.preferred_time = requested_time
+    elif not _reschedule_flow_active(recent_messages, messages):
+        lead.preferred_time = None
+
+    if not lead.phone:
+        output.reply_text = messages["reschedule_ask_phone"]
+        if "phone" not in output.missing_fields:
+            output.missing_fields.append("phone")
+    elif lead.preferred_time:
+        output.reply_text = messages["reschedule_ack"].replace(
+            "{preferred_time}", lead.preferred_time
+        )
+    else:
+        output.reply_text = messages["reschedule_ask_time"]
 
 
 def apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: str) -> None:
@@ -240,18 +266,10 @@ async def process_message(
 
     output.missing_fields = [f for f in output.missing_fields if not _known_missing(lead, f)]
 
-    if output.intent == Intent.RESCHEDULE and lead.phone:
-        existing_appointment = await find_existing_appointment(lead.name, lead.phone)
-        new_time = lead.preferred_time
-        if existing_appointment and new_time:
-            if _confirmation_pending(recent_messages, existing_appointment):
-                try:
-                    await update_appointment_datetime(existing_appointment["id"], new_time)
-                    logger.info("Rescheduled appointment %s for chat %s to %s", existing_appointment["id"], msg.channel_user_id, new_time)
-                except Exception as e:
-                    logger.error("Failed to update appointment %s: %s", existing_appointment["id"], e)
-            else:
-                output.reply_text = _build_confirmation_reply(existing_appointment, new_time)
+    if output.intent == Intent.RESCHEDULE:
+        _apply_reschedule_reply(
+            output, lead, recent_messages, config.client.business.messages
+        )
 
     if output.is_lead and lead.state == LeadState.NEW:
         t = validate_transition(LeadState.NEW, LeadState.COLLECT_FIELDS)
