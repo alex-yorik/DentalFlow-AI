@@ -19,10 +19,16 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(fields, ensure_ascii=False)
 
 
+def _silence_http_clients() -> None:
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
 def setup_logging(log_level: str = "INFO", json_format: str = "json") -> None:
     level = getattr(logging, log_level.upper(), logging.INFO)
     root = logging.getLogger()
     root.setLevel(level)
+    _silence_http_clients()
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
@@ -68,5 +74,7 @@ def uvicorn_log_config(log_level: str = "INFO", json_format: str = "json") -> di
             "uvicorn": {"handlers": ["console"], "level": log_level, "propagate": False},
             "uvicorn.error": {"handlers": ["console"], "level": log_level, "propagate": False},
             "uvicorn.access": {"handlers": ["console"], "level": log_level, "propagate": False},
+            "httpx": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+            "httpcore": {"handlers": ["console"], "level": "WARNING", "propagate": False},
         },
     }
