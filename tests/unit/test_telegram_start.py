@@ -52,8 +52,11 @@ class TestStartCommandTrailingText:
         with patch("src.channels.telegram.handlers.handle_message", new=AsyncMock()) as hm:
             await start_command(update, context)
 
-        assert update.message.text == "My tooth has broken\nMy name is John +1234567890"
-        hm.assert_awaited_once_with(update, context)
+        assert update.message.text == "/start\nMy tooth has broken\nMy name is John +1234567890"
+        hm.assert_awaited_once_with(
+            update, context,
+            text="My tooth has broken\nMy name is John +1234567890",
+        )
 
     @pytest.mark.asyncio
     async def test_start_with_inline_text_processes_message(self):
@@ -65,9 +68,45 @@ class TestStartCommandTrailingText:
         with patch("src.channels.telegram.handlers.handle_message", new=AsyncMock()) as hm:
             await start_command(update, context)
 
-        assert update.message.text == "I'm Petrov Petr +79990000011, I want to reschedule"
-        hm.assert_awaited_once_with(update, context)
+        assert update.message.text == "/start I'm Petrov Petr +79990000011, I want to reschedule"
+        hm.assert_awaited_once_with(
+            update, context,
+            text="I'm Petrov Petr +79990000011, I want to reschedule",
+        )
         update.message.reply_text.assert_awaited_once_with("Hello!")
+
+    @pytest.mark.asyncio
+    async def test_start_does_not_mutate_immutable_telegram_message(self):
+        class _ImmutableMessage:
+            def __init__(self, text: str):
+                self._text = text
+                self.replies: list[str] = []
+
+            @property
+            def text(self) -> str:
+                return self._text
+
+            @text.setter
+            def text(self, value: str) -> None:
+                raise AttributeError("Attribute `text` of class `Message` can't be set!")
+
+            async def reply_text(self, value: str) -> None:
+                self.replies.append(value)
+
+        update = MagicMock()
+        update.message = _ImmutableMessage(
+            "/start I'm Petrov Petr +79990000011, I want to reschedule"
+        )
+        context = self._make_ctx()
+
+        with patch("src.channels.telegram.handlers.handle_message", new=AsyncMock()) as hm:
+            await start_command(update, context)
+
+        hm.assert_awaited_once_with(
+            update, context,
+            text="I'm Petrov Petr +79990000011, I want to reschedule",
+        )
+        assert update.message.replies == ["Hello!"]
 
     @pytest.mark.asyncio
     async def test_start_without_text_only_welcomes(self):

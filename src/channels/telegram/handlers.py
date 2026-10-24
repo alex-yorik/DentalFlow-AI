@@ -71,17 +71,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     trailing = _extract_text_after_start(update.message.text)
     if trailing is not None:
-        update.message.text = trailing
-        await handle_message(update, context)
+        await handle_message(update, context, text=trailing)
 
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    text: str | None = None,
+) -> None:
     config: AppConfig = context.bot_data["config"]
     llm_client: LLMClient = context.bot_data["llm_client"]
     chat_id = update.effective_chat.id
 
     try:
-        user_text = sanitize_input(update.message.text)
+        user_text = sanitize_input(text if text is not None else update.message.text)
         if user_text is None:
             await update.message.reply_text(
                 config.client.business.messages.get("error_generic", "")
