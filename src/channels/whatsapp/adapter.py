@@ -6,10 +6,9 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from src.channels.base import IncomingMessage, OutgoingAdapter
+from src.channels.base import IncomingMessage
 from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message
-from src.leads.models import LeadState
 
 logger = logging.getLogger(__name__)
 
