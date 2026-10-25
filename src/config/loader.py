@@ -31,6 +31,7 @@ class RulesConfig(BaseModel):
     blocked_phrases: list[str]
     confidence_threshold: float = 0.5
     max_refusal_count: int = 3
+    safe_phrases: list[str] = Field(default_factory=list)
 
 
 class ScoringRule(BaseModel):

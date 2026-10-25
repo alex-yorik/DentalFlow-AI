@@ -1,6 +1,6 @@
 import pytest
 
-from src.config.loader import REQUIRED_ENV_VARS, load_config, validate_required_env
+from src.config.loader import REQUIRED_ENV_VARS, RulesConfig, load_config, validate_required_env
 
 
 class TestValidateRequiredEnv:
@@ -51,3 +51,25 @@ class TestLoadConfigValidation:
         cfg = load_config()
         assert cfg.telegram_bot_token == "token"
         assert cfg.openai_api_key == "key"
+
+
+class TestRulesConfigSafePhrases:
+    def test_safe_phrases_defaults_to_empty_list(self):
+        rules = RulesConfig(blocked_phrases=["free"])
+        assert rules.safe_phrases == []
+
+    def test_safe_phrases_accepted(self):
+        rules = RulesConfig(blocked_phrases=["free"], safe_phrases=["feel free"])
+        assert rules.safe_phrases == ["feel free"]
+
+    def test_old_config_without_safe_phrases_still_valid(self):
+        rules = RulesConfig(
+            blocked_phrases=["free"],
+            confidence_threshold=0.5,
+            max_refusal_count=3,
+        )
+        assert rules.safe_phrases == []
+
+    def test_unknown_fields_are_ignored(self):
+        rules = RulesConfig(blocked_phrases=["free"], future_field="value")
+        assert not hasattr(rules, "future_field")

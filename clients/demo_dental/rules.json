@@ -15,5 +15,6 @@
     "natural remedy"
   ],
   "confidence_threshold": 0.5,
-  "max_refusal_count": 3
+  "max_refusal_count": 3,
+  "safe_phrases": ["feel free"]
 }

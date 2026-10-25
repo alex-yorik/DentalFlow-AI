@@ -40,3 +40,12 @@ Baseline-тесты зелёные: 0 failed. Можно переходить к
 - Отклонение от Allowed files T1: обновлены строки 45, 59, 94 в `docs/process/FASTAPI_TESTING.md` (`requirements.txt` → `requirements-dev.txt`). Разрешено владельцем.
 - `docs/reports/hardening-report.md:9` не изменялся — исторический baseline T0.
 
+
+## T2-followup (Step 0b of T4, owner-approved)
+
+Пункт «GitHub CI — NOT VERIFIED» закрыт после перевода репозитория в публичный (анонимный GitHub API).
+
+- Прогон: https://github.com/alex-yorik/DentalFlow-AI/actions/runs/40209061521
+- Ветка: `chore/portfolio-hardening`, head SHA `2d61e930862a`
+- Статус: `completed` / `success`
+- Дата: 2026-10-25T15:53:17Z

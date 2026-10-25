@@ -25,9 +25,19 @@ def _phrase_in_text(phrase: str, text: str) -> bool:
     return bool(pattern.search(text))
 
 
+def _strip_safe_phrases(text: str, safe_phrases: list[str]) -> str:
+    for phrase in safe_phrases:
+        if not phrase.strip():
+            continue
+        pattern = re.compile(r'\b' + re.escape(phrase) + r'\b', re.IGNORECASE)
+        text = pattern.sub('', text)
+    return text
+
+
 def check_safety(output: AIOutput, rules: RulesConfig, lead=None) -> SafetyVerdict:
+    checked_reply_text = _strip_safe_phrases(output.reply_text, rules.safe_phrases)
     for phrase in rules.blocked_phrases:
-        if _phrase_in_text(phrase, output.reply_text):
+        if _phrase_in_text(phrase, checked_reply_text):
             return _build_refusal_verdict(
                 f"reply contains blocked phrase: '{phrase}'", lead, rules,
             )

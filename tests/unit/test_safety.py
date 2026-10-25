@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from src.llm.contracts import AIOutput, Intent, SuggestedAction, ExtractedField
 from src.config.loader import RulesConfig
 from src.leads.models import Lead
@@ -10,6 +12,14 @@ RULES = RulesConfig(
                      "painkiller", "antibiotic", "cure", "heal", "natural remedy"],
     confidence_threshold=0.5,
     max_refusal_count=3,
+)
+
+SAFE_PHRASES_RULES = RulesConfig(
+    blocked_phrases=["price", "cost", "cheap", "discount", "free", "guarantee", "diagnosis", "prescription",
+                     "painkiller", "antibiotic", "cure", "heal", "natural remedy"],
+    confidence_threshold=0.5,
+    max_refusal_count=3,
+    safe_phrases=["feel free"],
 )
 
 
@@ -164,3 +174,58 @@ class TestSafetyCheck:
     def test_word_boundary_free_matches_standalone_free(self):
         verdict = check_safety(_output(reply_text="Is this treatment free?"), RULES)
         assert not verdict.allowed
+
+
+class TestSafePhrases:
+    def test_feel_free_reply_allowed_and_refusal_count_unchanged(self):
+        lead = _lead(refusal_count=0)
+        verdict = check_safety(
+            _output(reply_text="Feel free to ask us anything."),
+            SAFE_PHRASES_RULES,
+            lead,
+        )
+        assert verdict.allowed
+        assert verdict.blocked_reason is None
+        assert lead.refusal_count == 0
+
+    def test_please_feel_free_reply_allowed(self):
+        verdict = check_safety(
+            _output(reply_text="Please feel free to share your phone number."),
+            SAFE_PHRASES_RULES,
+        )
+        assert verdict.allowed
+
+    @pytest.mark.parametrize(
+        "reply_text",
+        [
+            "We offer a free consultation.",
+            "It is free of charge.",
+            "The price is 50.",
+            "It will cost 50.",
+            "We give a discount.",
+            "We guarantee results.",
+            "This will cure it.",
+        ],
+    )
+    def test_blocked_phrases_still_blocked(self, reply_text):
+        verdict = check_safety(_output(reply_text=reply_text), SAFE_PHRASES_RULES)
+        assert not verdict.allowed
+
+    def test_safe_phrase_does_not_whitelist_extracted_fields(self):
+        output = _output(
+            reply_text="Feel free to ask us anything.",
+            extracted_fields=[
+                ExtractedField(field_name="service", value="free consultation", confidence=0.8),
+            ],
+        )
+        verdict = check_safety(output, SAFE_PHRASES_RULES)
+        assert not verdict.allowed
+        assert "free" in (verdict.blocked_reason or "")
+
+    def test_old_rules_without_safe_phrases_unchanged(self):
+        verdict = check_safety(
+            _output(reply_text="Feel free to ask us anything."),
+            RULES,
+        )
+        assert not verdict.allowed
+        assert "free" in (verdict.blocked_reason or "")
