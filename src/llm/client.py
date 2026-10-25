@@ -1,8 +1,9 @@
 import logging
+from typing import Any, cast
 
 from openai import AsyncOpenAI
 
-from src.llm.contracts import AIInput, AIOutput
+from src.llm.contracts import AIInput, AIOutput, Intent, SuggestedAction
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class LLMClient:
         try:
             response = await self._client.beta.chat.completions.parse(
                 model=self.model,
-                messages=messages,
+                messages=cast(Any, messages),
                 response_format=AIOutput,
                 temperature=0.1,
             )
@@ -57,13 +58,13 @@ class LLMClient:
 
     def _fallback(self, reason: str) -> AIOutput:
         return AIOutput(
-            intent="off_topic",
+            intent=Intent.OFF_TOPIC,
             confidence=0.0,
             reply_text=_FALLBACK_REPLY,
             is_lead=False,
             extracted_fields=[],
             missing_fields=[],
-            suggested_action="close",
+            suggested_action=SuggestedAction.CLOSE,
             safe=True,
             crm_write_allowed=False,
             schedule_followup=False,

@@ -141,7 +141,6 @@ class TestCrmFailureRecovery:
 
     async def test_blocked_transition_logs_warning(self, mock_update, mock_context, db, caplog):
         """Task 3: blocked transitions must produce a warning log."""
-        chat_id = mock_update.effective_chat.id
         mock_update.message.text = "book me"
         mock_context.bot_data["llm_client"].analyze.return_value = _make_output(
             intent=Intent.LEAD,

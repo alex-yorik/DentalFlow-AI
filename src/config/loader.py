@@ -118,7 +118,8 @@ class AppConfig(BaseModel):
     log_level: str = "INFO"
     crm_provider: str = "mock"
     web_port: int = 8080
-    web_host: str = "0.0.0.0"
+    # Container must bind all interfaces; nginx is the external entrypoint.
+    web_host: str = "0.0.0.0"  # nosec B104
     client: ClientConfig
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
     backup: BackupConfig = Field(default_factory=BackupConfig)
@@ -127,7 +128,7 @@ class AppConfig(BaseModel):
 CLIENTS_DIR = Path(os.getenv("DENTALFLOW_CLIENTS_DIR", "./clients"))
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path) -> Any:
     with open(path) as f:
         return json.load(f)
 

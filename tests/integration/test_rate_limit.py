@@ -12,7 +12,7 @@ BURST_LIMIT = 20
 
 def _nginx_reachable() -> bool:
     try:
-        with urllib.request.urlopen(f"{BASE_URL}/health", timeout=2) as resp:
+        with urllib.request.urlopen(f"{BASE_URL}/health", timeout=2):
             return True
     except Exception:
         return False

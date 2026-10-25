@@ -12,13 +12,13 @@ install:
 	python3 -m pip install -r requirements-dev.txt
 
 lint:
-	ruff check --exit-zero src/ tests/
+	ruff check src/ tests/
 
 typecheck:
-	mypy --no-error-summary src/ || true
+	mypy src/
 
 test:
-	python3 -m pytest tests/ -v --tb=short
+	python3 -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
 
 build:
 	docker build -t dentalflow-ai .

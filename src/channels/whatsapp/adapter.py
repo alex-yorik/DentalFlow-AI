@@ -1,7 +1,7 @@
 import hashlib
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from src.channels.base import IncomingMessage
 from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message
+from src.leads.models import Lead
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,8 @@ async def whatsapp_webhook(request: Request, body: WhatsAppMessage) -> dict:
     )
     if blocked_reply:
         return {"reply": blocked_reply}
+
+    lead = cast(Lead, lead)
 
     msg = IncomingMessage(
         channel_user_id=body.phone_number,
