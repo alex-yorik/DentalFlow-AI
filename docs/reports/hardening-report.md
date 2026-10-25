@@ -34,3 +34,9 @@
 | PLW1510 | 7 |  |  |
 
 Baseline-тесты зелёные: 0 failed. Можно переходить к T1.
+
+## T1-followup (owner-approved)
+
+- Отклонение от Allowed files T1: обновлены строки 45, 59, 94 в `docs/process/FASTAPI_TESTING.md` (`requirements.txt` → `requirements-dev.txt`). Разрешено владельцем.
+- `docs/reports/hardening-report.md:9` не изменялся — исторический baseline T0.
+
