@@ -93,6 +93,7 @@ All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never
 2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
 3. Generate self-signed TLS certificates for local use: `make certs`
 4. `docker-compose up -d`
+5. After the first start, give the containers write access to SQLite and restart them: `sudo chown -R 1000:1000 data/ && docker-compose restart`. Containers run as UID 1000; otherwise SQLite opens read-only (see [Deployment](#deployment)).
 
 `make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
 
@@ -103,6 +104,8 @@ The web channel runs on the same message processor as the bot, so the full flow 
 ```bash
 make certs
 docker compose up -d web nginx
+sudo chown -R 1000:1000 data/   # containers run as UID 1000 (see Deployment)
+docker compose restart web
 curl -s -X POST http://localhost:80/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'

@@ -49,3 +49,8 @@ Baseline-тесты зелёные: 0 failed. Можно переходить к
 - Ветка: `chore/portfolio-hardening`, head SHA `2d61e930862a`
 - Статус: `completed` / `success`
 - Дата: 2026-10-25T15:53:17Z
+
+## T5-followup (owner-approved, Step A)
+
+- Отклонение от Allowed files T5: изменён `.env.example` — `ALERTS_CHAT_ID=0` с комментарием. Без этого `cp .env.example .env` даёт `int('')` в `load_config()` и web не стартует. Разрешено владельцем.
+- README Installation / Try It: добавлен шаг `sudo chown -R 1000:1000 data/` после первого запуска (контейнеры работают под UID 1000, иначе SQLite открывается read-only).
