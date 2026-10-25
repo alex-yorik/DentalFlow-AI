@@ -18,19 +18,17 @@ router = APIRouter()
 # WhatsApp Business API integration (not yet configured)
 # Requires: WhatsApp Business Account + Meta Developer setup
 # See: https://developers.facebook.com/docs/whatsapp/business-api/
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "dentalflow_verify_token")
-
-_response_store: dict[str, list[dict]] = {}
+VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
 
 
 class WhatsAppOutgoingAdapter:
     def __init__(self, phone_number: str) -> None:
         self._phone = phone_number
+        self.sent: list[str] = []
 
     async def send_message(self, channel_user_id: str, text: str) -> None:
         phone = channel_user_id or self._phone
-        _response_store.setdefault(phone, [])
-        _response_store[phone].append({"role": "assistant", "text": text})
+        self.sent.append(text)
         logger.info("WhatsApp stub: would send to %s: %s", phone, text[:80])
 
 
@@ -81,20 +79,14 @@ async def whatsapp_webhook(request: Request, body: WhatsAppMessage) -> dict:
         llm_client=llm_client,
     )
 
-    messages = _response_store.get(body.phone_number, [])
-    reply = messages[-1]["text"] if messages else ""
+    reply = outgoing.sent[-1] if outgoing.sent else ""
     return {"reply": reply}
 
 
 @router.get("/whatsapp/webhook")
 async def whatsapp_verify(hub_mode: str = "", hub_verify_token: str = "", hub_challenge: str = "") -> dict | str:
-    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+    if VERIFY_TOKEN and hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         logger.info("WhatsApp webhook verified")
         return hub_challenge
-    logger.warning("WhatsApp webhook verification failed: mode=%s, token=%s", hub_mode, hub_verify_token)
+    logger.warning("WhatsApp webhook verification failed: mode=%s", hub_mode)
     return {"error": "verification failed"}
-
-
-@router.get("/whatsapp/webhook/{phone_number}/messages")
-async def get_messages(phone_number: str) -> dict:
-    return {"messages": _response_store.get(phone_number, [])}

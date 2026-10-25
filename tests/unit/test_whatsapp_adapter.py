@@ -7,14 +7,8 @@ from fastapi.testclient import TestClient
 from src.channels.whatsapp.adapter import (
     router,
     WhatsAppOutgoingAdapter,
-    _response_store,
 )
 from src.llm.client import LLMClient
-
-
-@pytest.fixture(autouse=True)
-def clear_store():
-    _response_store.clear()
 
 
 @pytest.fixture
@@ -37,26 +31,32 @@ class TestWhatsAppOutgoingAdapter:
 
         adapter = WhatsAppOutgoingAdapter("+79160000000")
         asyncio.run(adapter.send_message("+79160000000", "hello"))
-        assert _response_store["+79160000000"] == [{"role": "assistant", "text": "hello"}]
+        assert adapter.sent == ["hello"]
 
     def test_send_message_falls_back_to_own_phone(self):
         import asyncio
 
         adapter = WhatsAppOutgoingAdapter("+79160000001")
         asyncio.run(adapter.send_message("", "hi"))
-        assert _response_store["+79160000001"][0]["text"] == "hi"
+        assert adapter.sent == ["hi"]
 
 
 class TestWhatsAppVerify:
-    def test_verify_success(self, client):
+    def test_verify_success(self, client, monkeypatch):
+        from src.channels.whatsapp import adapter as wa
+
+        monkeypatch.setattr(wa, "VERIFY_TOKEN", "expected-token")
         resp = client.get(
             "/whatsapp/webhook",
-            params={"hub_mode": "subscribe", "hub_verify_token": "dentalflow_verify_token", "hub_challenge": "abc123"},
+            params={"hub_mode": "subscribe", "hub_verify_token": "expected-token", "hub_challenge": "abc123"},
         )
         assert resp.status_code == 200
         assert resp.json() == "abc123"
 
-    def test_verify_failure(self, client):
+    def test_verify_failure(self, client, monkeypatch):
+        from src.channels.whatsapp import adapter as wa
+
+        monkeypatch.setattr(wa, "VERIFY_TOKEN", "expected-token")
         resp = client.get(
             "/whatsapp/webhook",
             params={"hub_mode": "subscribe", "hub_verify_token": "wrong", "hub_challenge": "abc123"},

@@ -5,32 +5,34 @@ from typing import cast
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.channels.base import IncomingMessage
 from src.core.lead_lookup import resolve_lead
-from src.core.message_processor import process_message
+from src.core.message_processor import _MAX_INPUT_LENGTH, process_message
 from src.leads.models import Lead
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_response_store: dict[str, list[dict]] = {}
-
 
 class WebOutgoingAdapter:
     def __init__(self, channel_id: str) -> None:
         self._channel_id = channel_id
+        self.sent: list[str] = []
 
     async def send_message(self, channel_user_id: str, text: str) -> None:
-        _response_store.setdefault(channel_user_id, [])
-        _response_store[channel_user_id].append({"role": "assistant", "text": text})
+        self.sent.append(text)
 
 
 class ChatRequest(BaseModel):
-    channel_id: str
-    text: str
+    channel_id: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_\-]+$",
+    )
+    text: str = Field(min_length=1, max_length=_MAX_INPUT_LENGTH)
 
 
 def _channel_id_to_int(channel_id: str) -> int:
@@ -70,14 +72,8 @@ async def chat(request: Request, body: ChatRequest) -> dict:
         llm_client=llm_client,
     )
 
-    messages = _response_store.get(body.channel_id, [])
-    reply = messages[-1]["text"] if messages else ""
+    reply = outgoing.sent[-1] if outgoing.sent else ""
     return {"reply": reply}
-
-
-@router.get("/api/chat/{channel_id}/messages")
-async def get_messages(channel_id: str) -> dict:
-    return {"messages": _response_store.get(channel_id, [])}
 
 
 @router.get("/")

@@ -120,6 +120,7 @@ class AppConfig(BaseModel):
     web_port: int = 8080
     # Container must bind all interfaces; nginx is the external entrypoint.
     web_host: str = "0.0.0.0"  # nosec B104
+    cors_allow_origins: list[str] = Field(default_factory=list)
     client: ClientConfig
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
     backup: BackupConfig = Field(default_factory=BackupConfig)
@@ -199,6 +200,11 @@ def load_config() -> AppConfig:
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
         web_port=int(os.getenv("DENTALFLOW_PORT", "8080")),
+        cors_allow_origins=[
+            origin.strip()
+            for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+            if origin.strip()
+        ],
         client=client,
         monitoring=MonitoringConfig(
             watchdog_interval=int(os.getenv("WATCHDOG_INTERVAL", "30")),

@@ -60,7 +60,7 @@ Web channel (FastAPI) ─────┼─▶ message_processor ─▶ rules/sa
 
 Services (docker-compose):
 - **telegram** — python-telegram-bot, message intake and processing
-- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (behind nginx)
+- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (nginx exposes only `/api/chat` and `/health`; `/metrics` is internal-network only)
 - **followup** — background reminders and follow-up touches
 - **watchdog** — service health checks, Telegram alerts
 - **backup** — SQLite backups via the sqlite3 backup API
@@ -78,7 +78,7 @@ Channels are isolated entrypoints sharing the same message processor. They use t
 ## Security
 The project passed a full security audit (2026-08-07). Implemented:
 - Fail-closed configuration authentication — required variables (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are verified at startup, no defaults
-- Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` and `/metrics` (HTTP 429)
+- Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` (HTTP 429); `/metrics` returns 404 through nginx and is reachable only inside the Docker network
 - Security headers: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
 - Conversation safety: blocked phrases, refusal limit, safe messages by default
 - WAL + `busy_timeout=5000` (database locking eliminated)
@@ -104,7 +104,7 @@ curl -s -X POST http://localhost:80/api/chat \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
 ```
 
-`POST /api/chat` takes `channel_id` (any stable client-side string identifying the conversation) and `text`, and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; `GET /api/chat/{channel_id}/messages` returns the stored replies.
+`POST /api/chat` takes `channel_id` (1-64 chars, letters/digits/`_`/`-`) and `text` (1-2000 chars), and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; replies are returned per request and are not stored in memory. Cross-origin browser access is disabled by default; set `CORS_ALLOW_ORIGINS` (comma-separated) to allow specific origins.
 
 Only `OPENAI_API_KEY` is required for the web demo — `TELEGRAM_BOT_TOKEN` is needed only by the `telegram` service. If port 80 is busy, set `NGINX_PORT` in `.env` and use that port in the URL.
 
