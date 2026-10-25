@@ -121,7 +121,7 @@ After the first deployment: `chown -R <container uid> data/` (otherwise SQLite w
 The project includes 31 test files (unit + integration):
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements-dev.txt
 pytest -q
 ```
 

@@ -20,13 +20,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements-prod.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install ruff mypy
 
       - name: Lint
         # TODO: fix pre-existing issues (96 lint + 17 typecheck)

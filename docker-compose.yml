@@ -7,11 +7,6 @@ services:
   telegram:
     build:
       context: .
-      args:
-        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-300s}
-        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
-        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
-        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
     command: ["python", "-m", "src.entrypoints.telegram"]
     restart: unless-stopped
     logging: *default-logging
@@ -53,11 +48,6 @@ services:
   web:
     build:
       context: .
-      args:
-        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-300s}
-        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
-        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
-        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
     command: ["python", "-m", "src.entrypoints.web"]
     restart: unless-stopped
     logging: *default-logging
@@ -79,11 +69,6 @@ services:
   followup:
     build:
       context: .
-      args:
-        HEALTHCHECK_INTERVAL: ${HEALTHCHECK_INTERVAL:-300s}
-        HEALTHCHECK_TIMEOUT: ${HEALTHCHECK_TIMEOUT:-10s}
-        HEALTHCHECK_START_PERIOD: ${HEALTHCHECK_START_PERIOD:-10s}
-        HEALTHCHECK_RETRIES: ${HEALTHCHECK_RETRIES:-3}
     command: ["python", "-m", "src.entrypoints.followup"]
     restart: unless-stopped
     logging: *default-logging

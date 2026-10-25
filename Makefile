@@ -1,11 +1,15 @@
-.PHONY: help lint typecheck test build clean
+.PHONY: help install lint typecheck test build clean
 
 help:
+	@echo "install    — Install dev dependencies"
 	@echo "lint       — Run ruff linter"
 	@echo "typecheck  — Run mypy type checker"
 	@echo "test       — Run pytest"
 	@echo "build      — Build Docker image"
 	@echo "clean      — Remove __pycache__"
+
+install:
+	python3 -m pip install -r requirements-dev.txt
 
 lint:
 	ruff check --exit-zero src/ tests/
