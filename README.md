@@ -91,24 +91,32 @@ All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never
 ## Installation
 1. Copy `.env.example` to `.env`
 2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
-3. `docker-compose up -d`
+3. Generate self-signed TLS certificates for local use: `make certs`
+4. `docker-compose up -d`
+
+`make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
 
 ## Try It Without Telegram
 
 The web channel runs on the same message processor as the bot, so the full flow works without a Telegram token:
 
 ```bash
+make certs
 docker compose up -d web nginx
 curl -s -X POST http://localhost:80/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
 ```
 
+`make certs` generates a self-signed certificate for local demonstration. A public server needs a trusted Let's Encrypt certificate — see [docs/ssl_setup.md](docs/ssl_setup.md).
+
 `POST /api/chat` takes `channel_id` (1-64 chars, letters/digits/`_`/`-`) and `text` (1-2000 chars), and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; replies are returned per request and are not stored in memory. Cross-origin browser access is disabled by default; set `CORS_ALLOW_ORIGINS` (comma-separated) to allow specific origins.
 
 Only `OPENAI_API_KEY` is required for the web demo — `TELEGRAM_BOT_TOKEN` is needed only by the `telegram` service. If port 80 is busy, set `NGINX_PORT` in `.env` and use that port in the URL.
 
 ## Deployment
+A public server must use trusted Let's Encrypt certificates; `make certs` is for local demonstration only. See [docs/ssl_setup.md](docs/ssl_setup.md).
+
 ```bash
 docker-compose build && docker-compose up -d
 docker-compose logs -f --tail=30
