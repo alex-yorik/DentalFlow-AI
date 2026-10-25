@@ -118,6 +118,7 @@ services:
     volumes:
       - ./data:/app/data
     healthcheck:
+      # always-healthy by design: worker liveness is covered by watchdog heartbeats
       test: ["CMD-SHELL", "exit 0"]
       interval: 30s
       timeout: 5s
@@ -146,6 +147,7 @@ services:
     volumes:
       - ./data:/app/data
     healthcheck:
+      # always-healthy by design: worker liveness is covered by watchdog heartbeats
       test: ["CMD-SHELL", "exit 0"]
       interval: 30s
       timeout: 5s

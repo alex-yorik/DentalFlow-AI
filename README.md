@@ -10,13 +10,28 @@ Demo configuration — the **Bright Smile Dental** clinic (demo client `demo_den
 
 ## Features
 - **AI receptionist** — answers questions about hours, address, services, and FAQ based on the client configuration
-- **Lead qualification** — collects name, phone, and service interest; a scoring engine (rules + points) determines lead readiness for booking
+- **Lead qualification** — collects name, phone, and service interest; a scoring engine (rules + points) determines lead readiness for booking (e.g. name +10, phone +10, new-appointment intent +10 = 30 ≥ threshold 25 → the lead is written to CRM; see `clients/demo_dental/qualification.json`)
 - **Lead state machine** — an explicit finite-state machine for the lead lifecycle from `new` to `closed`
 - **CRM integration** — provider interface with a bundled mock provider (ready for HubSpot/Salesforce)
 - **Follow-up engine** — background reminders with configurable delays and retries
 - **Conversation safety** — blocks restricted topics (prices, diagnoses, prescriptions), refusal limit, safe default responses
 - **Web channel** — the same message processor is exposed via FastAPI (Telegram is the first channel; the architecture supports web/WhatsApp)
 - **Monitoring and backups** — watchdog, heartbeat, Telegram alerts, scheduled database backups
+
+## Demo Dialogue
+
+Real transcript from a live session against the Bright Smile Dental demo configuration (synthetic data, PII masked).
+
+**Patient:** Hi! Do you accept new patients?
+**Bright Smile Dental:** Yes, Bright Smile Dental accepts new patients! If you're interested in scheduling an appointment, I can help you with that.
+**Patient:** I would like to book a teeth cleaning.
+**Bright Smile Dental:** Great! I can help you with that. Could you please provide your name and phone number so we can check availability and confirm your appointment?
+**Patient:** Patient, +7 999 ***-**-11.
+**Bright Smile Dental:** Thank you, Patient! I have your name and phone number. Now, could you please let me know your preferred date and time for the teeth cleaning appointment?
+**Patient:** Saturday morning works for me.
+**Bright Smile Dental:** I understand that Saturday morning works for you. However, please note that we are closed on Saturdays. Could you provide an alternative date or time for your teeth cleaning appointment?
+**Patient:** Then Monday at 10am.
+**Bright Smile Dental:** Thank you, Patient! I have noted your preferred time for a teeth cleaning appointment on Monday at 10 AM. We will check availability and confirm with you shortly.
 
 ## Tech Stack
 - Python 3.12, async/await
@@ -53,6 +68,13 @@ Services (docker-compose):
 
 Data: SQLite in `data/` (volume), schema managed by Alembic migrations (`src/storage/alembic`). Client configuration is JSON in `clients/<client>/` (business, services, faq, rules, qualification, followup, prompts). `src/main.py` is a dev-only entrypoint; production runs through dedicated entrypoints.
 
+## Multi-Channel Support
+
+Currently implemented: Telegram (production-ready), WhatsApp Business API (stub).
+Architecture supports adding: Slack (Bot API), SMS via Twilio, Facebook Messenger (Meta Business API), Microsoft Teams (Bot Framework).
+
+Channels are isolated entrypoints sharing the same message processor. They use the common `IncomingMessage` contract and `OutgoingAdapter` protocol (`src/channels/base.py`); there is no plugin registry — adding a channel means adding an entrypoint plus an adapter.
+
 ## Security
 The project passed a full security audit (2026-08-07). Implemented:
 - Fail-closed configuration authentication — required variables (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are verified at startup, no defaults
@@ -71,6 +93,21 @@ All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never
 2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
 3. `docker-compose up -d`
 
+## Try It Without Telegram
+
+The web channel runs on the same message processor as the bot, so the full flow works without a Telegram token:
+
+```bash
+docker compose up -d web nginx
+curl -s -X POST http://localhost:80/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
+```
+
+`POST /api/chat` takes `channel_id` (any stable client-side string identifying the conversation) and `text`, and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; `GET /api/chat/{channel_id}/messages` returns the stored replies.
+
+Only `OPENAI_API_KEY` is required for the web demo — `TELEGRAM_BOT_TOKEN` is needed only by the `telegram` service. If port 80 is busy, set `NGINX_PORT` in `.env` and use that port in the URL.
+
 ## Deployment
 ```bash
 docker-compose build && docker-compose up -d
@@ -84,7 +121,7 @@ After the first deployment: `chown -R <container uid> data/` (otherwise SQLite w
 The project includes 31 test files (unit + integration):
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 pytest -q
 ```
 
@@ -101,6 +138,7 @@ This is a working prototype. Current limitations include:
 - WhatsApp Business API integration is a stub (requires business account)
 - CRM provider is mocked (real integration depends on client's CRM)
 - LLM responses may require human review for critical decisions
+- Does not collect or store medical information; medical topics are blocked by conversation safety. Not HIPAA-compliant and not intended for PHI.
 - Not designed for high-volume production without scaling
 
 ## License
