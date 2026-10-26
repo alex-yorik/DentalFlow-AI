@@ -76,7 +76,7 @@ Designed as **portfolio-grade commercial MVP**, adaptable to other businesses vi
 ## Current Phase
 
 ### Phase 9: Production Deployment 🔄
-**Goal:** Make project production-ready with Docker, CI/CD, and monitoring.
+**Goal:** production-like deployment (Docker, CI, monitoring); current maturity: prototype.
 
 **Status:** In progress (9B.2 — NEXT)
 
