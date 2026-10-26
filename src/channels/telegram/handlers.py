@@ -2,6 +2,7 @@ import logging
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timezone
+from typing import cast
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -10,7 +11,7 @@ from src.channels.base import IncomingMessage
 from src.config.loader import AppConfig
 from src.core.lead_lookup import resolve_lead
 from src.core.message_processor import process_message, sanitize_input
-from src.leads.models import LeadState
+from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id
 from src.llm.client import LLMClient
 from src.storage import database
@@ -23,10 +24,12 @@ _RATE_LIMIT_WINDOW = 60.0
 
 class TelegramOutgoingAdapter:
     def __init__(self, update: Update) -> None:
-        self._update = update
+        message = update.message
+        assert message is not None
+        self._message = message
 
     async def send_message(self, channel_user_id: str, text: str) -> None:
-        await self._update.message.reply_text(text)
+        await self._message.reply_text(text)
 
 
 _rate_limit: dict[int, deque] = defaultdict(deque)
@@ -67,9 +70,12 @@ def _extract_text_after_start(text: str | None) -> str | None:
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: AppConfig = context.bot_data["config"]
     text = config.client.business.messages.get("welcome", "Hello!")
-    await update.message.reply_text(text)
+    message = update.message
+    if message is None:
+        return
+    await message.reply_text(text)
 
-    trailing = _extract_text_after_start(update.message.text)
+    trailing = _extract_text_after_start(message.text)
     if trailing is not None:
         await handle_message(update, context, text=trailing)
 
@@ -81,19 +87,23 @@ async def handle_message(
 ) -> None:
     config: AppConfig = context.bot_data["config"]
     llm_client: LLMClient = context.bot_data["llm_client"]
-    chat_id = update.effective_chat.id
+    message = update.message
+    chat = update.effective_chat
+    if message is None or chat is None:
+        return
+    chat_id = chat.id
 
     try:
-        user_text = sanitize_input(text if text is not None else update.message.text)
+        user_text = sanitize_input(text if text is not None else message.text)
         if user_text is None:
-            await update.message.reply_text(
+            await message.reply_text(
                 config.client.business.messages.get("error_generic", "")
             )
             return
 
         if not _check_rate_limit(chat_id):
             logger.warning("Rate limit hit for chat %s", chat_id)
-            await update.message.reply_text(_RATE_LIMIT_REPLY)
+            await message.reply_text(_RATE_LIMIT_REPLY)
             return
 
         lead = await get_lead_by_chat_id(chat_id)
@@ -118,8 +128,10 @@ async def handle_message(
             blocked_reply=config.client.business.messages.get("error_unsafe", ""),
         )
         if blocked_reply:
-            await update.message.reply_text(blocked_reply)
+            await message.reply_text(blocked_reply)
             return
+
+        lead = cast(Lead, lead)
 
         msg = IncomingMessage(channel_user_id=str(chat_id), text=user_text)
         outgoing = TelegramOutgoingAdapter(update)
@@ -137,7 +149,7 @@ async def handle_message(
     except Exception as e:
         logger.error("Unhandled error in handle_message for chat %s: %s", chat_id, e, exc_info=True)
         try:
-            await update.message.reply_text(
+            await message.reply_text(
                 config.client.business.messages.get("error_generic", "")
             )
         except Exception:

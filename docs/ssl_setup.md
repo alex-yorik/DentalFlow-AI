@@ -6,8 +6,8 @@ Nginx уже сконфигурирован на `listen 443 ssl` и работ�
 
 ## Текущее состояние (dev)
 
-- Self-signed сгенерированы: `docker/certs/fullchain.pem` + `docker/certs/privkey.pem`
-  (openssl, 365 дней, CN=localhost).
+- Self-signed генерируются командой `make certs`: `docker/certs/fullchain.pem` +
+  `docker/certs/privkey.pem` (openssl, 365 дней, CN=localhost).
 - Порт 80 остаётся рабочим прокси (health/headers/rate limit) — не редиректит.
 - Порт 443 работает с self-signed (проверка: `curl -k https://localhost/health`).
 

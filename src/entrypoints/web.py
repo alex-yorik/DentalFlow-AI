@@ -26,13 +26,15 @@ def _build_web_app(config):
     async def get_metrics():
         return metrics.snapshot()
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    cors_origins = getattr(config, "cors_allow_origins", [])
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type"],
+        )
     app.include_router(web_router)
     app.state.config = config
     app.state.llm_client = LLMClient(

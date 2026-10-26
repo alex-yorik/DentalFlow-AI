@@ -22,20 +22,24 @@ async def run_telegram(config) -> None:
         logger.error("Failed to create bot: %s", e, exc_info=True)
         return
 
-    followup_engine = FollowUpEngine(config, bot.bot)
+    engine = FollowUpEngine(config, bot.bot)
+    followup_engine: FollowUpEngine | None = engine
     bot.bot_data["followup_engine"] = followup_engine
 
     try:
-        await followup_engine.start()
+        await engine.start()
     except Exception as e:
         logger.error("Failed to start followup engine: %s", e, exc_info=True)
         followup_engine = None
+
+    assert bot.updater is not None
+    updater = bot.updater
 
     try:
         await bot.initialize()
         await bot.start()
         logger.info("Bot started (client: %s)", config.client_name)
-        await bot.updater.start_polling()
+        await updater.start_polling()
 
         shutdown_event = asyncio.Event()
         loop = asyncio.get_running_loop()
@@ -53,7 +57,7 @@ async def run_telegram(config) -> None:
         await heartbeat.stop()
         if followup_engine:
             await followup_engine.stop()
-        await bot.updater.stop()
+        await updater.stop()
         await bot.stop()
         await bot.shutdown()
         await close_connection()

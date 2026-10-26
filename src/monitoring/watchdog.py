@@ -32,7 +32,8 @@ async def _probe_web(url: str, timeout: float = 5.0) -> bool:
     import urllib.request
 
     def _request() -> bool:
-        with urllib.request.urlopen(url, timeout=timeout) as r:
+        # URL is an operator-configured health endpoint, not user input.
+        with urllib.request.urlopen(url, timeout=timeout) as r:  # nosec B310
             return r.status == 200
 
     try:

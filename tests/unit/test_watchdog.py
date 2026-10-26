@@ -38,7 +38,8 @@ async def test_healthy_services_no_events():
 
 
 async def test_up_to_down_emits_down_once():
-    state = {}; probe = make_probe(state)
+    state = {}
+    probe = make_probe(state)
     w = Watchdog(_cfg(cooldown=15), probe=probe, now_provider=lambda: T0)
     assert await w.tick() == []
 
@@ -75,7 +76,8 @@ async def test_down_cooldown_suppresses_then_re_emits():
 
 
 async def test_down_to_up_emits_recovered():
-    state = {}; probe = make_probe(state)
+    state = {}
+    probe = make_probe(state)
     w = Watchdog(_cfg(), probe=probe, now_provider=lambda: T0)
     assert await w.tick() == []
 
@@ -88,7 +90,8 @@ async def test_down_to_up_emits_recovered():
 
 
 async def test_worker_stale_marked_down():
-    state = {}; probe = make_probe(state)
+    state = {}
+    probe = make_probe(state)
     w = Watchdog(_cfg(), probe=probe, now_provider=lambda: T0)
     assert await w.tick() == []
 

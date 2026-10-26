@@ -31,6 +31,7 @@ class RulesConfig(BaseModel):
     blocked_phrases: list[str]
     confidence_threshold: float = 0.5
     max_refusal_count: int = 3
+    safe_phrases: list[str] = Field(default_factory=list)
 
 
 class ScoringRule(BaseModel):
@@ -118,7 +119,9 @@ class AppConfig(BaseModel):
     log_level: str = "INFO"
     crm_provider: str = "mock"
     web_port: int = 8080
-    web_host: str = "0.0.0.0"
+    # Container must bind all interfaces; nginx is the external entrypoint.
+    web_host: str = "0.0.0.0"  # nosec B104
+    cors_allow_origins: list[str] = Field(default_factory=list)
     client: ClientConfig
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
     backup: BackupConfig = Field(default_factory=BackupConfig)
@@ -127,7 +130,7 @@ class AppConfig(BaseModel):
 CLIENTS_DIR = Path(os.getenv("DENTALFLOW_CLIENTS_DIR", "./clients"))
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path) -> Any:
     with open(path) as f:
         return json.load(f)
 
@@ -198,6 +201,11 @@ def load_config() -> AppConfig:
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         crm_provider=os.getenv("DENTALFLOW_CRM_PROVIDER", "mock"),
         web_port=int(os.getenv("DENTALFLOW_PORT", "8080")),
+        cors_allow_origins=[
+            origin.strip()
+            for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+            if origin.strip()
+        ],
         client=client,
         monitoring=MonitoringConfig(
             watchdog_interval=int(os.getenv("WATCHDOG_INTERVAL", "30")),

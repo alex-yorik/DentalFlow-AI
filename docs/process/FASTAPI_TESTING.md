@@ -42,7 +42,7 @@ paths = {route.path for route in app.routes
 
 ## 🔧 Фиксация версий
 
-### В `requirements.txt`:
+### В `requirements-dev.txt`:
 
 ```txt
 # FastAPI — фиксируем мажорную версию
@@ -56,7 +56,7 @@ fastapi>=0.141.0,<0.150.0
 
 ```txt
 # Для тестов используйте ту же версию что и в production
--r requirements.txt
+-r requirements-dev.txt
 ```
 
 ---
@@ -91,7 +91,7 @@ def test_api_chat_responds(self, demo_app_config):
 ## 🚨 Чеклист перед коммитом
 
 - [ ] Тесты используют `app.openapi()["paths"]` а не `app.routes`
-- [ ] Версии FastAPI зафиксированы в `requirements.txt`
+- [ ] Версии FastAPI зафиксированы в `requirements-dev.txt`
 - [ ] CI использует ту же версию что и локальная разработка
 - [ ] Нет прямого доступа к внутренним атрибутам FastAPI
 

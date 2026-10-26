@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import cast
 
 import aiosqlite
 from alembic.config import Config
@@ -55,7 +56,7 @@ async def get_connection() -> aiosqlite.Connection:
             logger.error("StorageError: get_connection failed: %s", e)
             raise StorageError(f"get_connection failed: {e}") from e
 
-    return _SingletonConnection(_db_connection)
+    return cast(aiosqlite.Connection, _SingletonConnection(_db_connection))
 
 
 async def close_connection() -> None:

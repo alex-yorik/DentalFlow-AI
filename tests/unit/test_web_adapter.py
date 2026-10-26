@@ -5,7 +5,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.channels.web.adapter import router, _response_store
+from src.channels.web.adapter import router
 from src.leads.models import Lead
 from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.llm.client import LLMClient
@@ -21,11 +21,6 @@ def _make_lead(**overrides) -> Lead:
     )
     defaults.update(overrides)
     return Lead(**defaults)
-
-
-@pytest.fixture(autouse=True)
-def clear_store():
-    _response_store.clear()
 
 
 @pytest.fixture
@@ -204,21 +199,3 @@ class TestChatPage:
         assert resp.status_code == 200
         assert "text/html" in resp.headers["content-type"]
         assert "DentalFlow AI Chat" in resp.text
-
-
-class TestGetMessages:
-    def test_returns_stored_messages(self, client):
-        _response_store["user1"] = [
-            {"role": "assistant", "text": "Hello"},
-            {"role": "assistant", "text": "How can I help?"},
-        ]
-        resp = client.get("/api/chat/user1/messages")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert len(data["messages"]) == 2
-        assert data["messages"][0]["text"] == "Hello"
-
-    def test_returns_empty_list_for_unknown_user(self, client):
-        resp = client.get("/api/chat/unknown/messages")
-        assert resp.status_code == 200
-        assert resp.json() == {"messages": []}

@@ -22,16 +22,16 @@ Demo configuration — the **Bright Smile Dental** clinic (demo client `demo_den
 
 Real transcript from a live session against the Bright Smile Dental demo configuration (synthetic data, PII masked).
 
-**Patient:** Hi! Do you accept new patients?
-**Bright Smile Dental:** Yes, Bright Smile Dental accepts new patients! If you're interested in scheduling an appointment, I can help you with that.
-**Patient:** I would like to book a teeth cleaning.
-**Bright Smile Dental:** Great! I can help you with that. Could you please provide your name and phone number so we can check availability and confirm your appointment?
-**Patient:** Patient, +7 999 ***-**-11.
-**Bright Smile Dental:** Thank you, Patient! I have your name and phone number. Now, could you please let me know your preferred date and time for the teeth cleaning appointment?
-**Patient:** Saturday morning works for me.
-**Bright Smile Dental:** I understand that Saturday morning works for you. However, please note that we are closed on Saturdays. Could you provide an alternative date or time for your teeth cleaning appointment?
-**Patient:** Then Monday at 10am.
-**Bright Smile Dental:** Thank you, Patient! I have noted your preferred time for a teeth cleaning appointment on Monday at 10 AM. We will check availability and confirm with you shortly.
+- **Patient:** Hi! Do you accept new patients?
+- **Bright Smile Dental:** Yes, Bright Smile Dental accepts new patients! If you're interested in scheduling an appointment, I can help you with that.
+- **Patient:** I would like to book a teeth cleaning.
+- **Bright Smile Dental:** Great! I can help you with that. Could you please provide your name and phone number so we can check availability and confirm your appointment?
+- **Patient:** Patient, +7 999 ***-**-11.
+- **Bright Smile Dental:** Thank you, Patient! I have your name and phone number. Now, could you please let me know your preferred date and time for the teeth cleaning appointment?
+- **Patient:** Saturday morning works for me.
+- **Bright Smile Dental:** I understand that Saturday morning works for you. However, please note that we are closed on Saturdays. Could you provide an alternative date or time for your teeth cleaning appointment?
+- **Patient:** Then Monday at 10am.
+- **Bright Smile Dental:** Thank you, Patient! I have noted your preferred time for a teeth cleaning appointment on Monday at 10 AM. We will check availability and confirm with you shortly.
 
 ## Tech Stack
 - Python 3.12, async/await
@@ -60,7 +60,7 @@ Web channel (FastAPI) ─────┼─▶ message_processor ─▶ rules/sa
 
 Services (docker-compose):
 - **telegram** — python-telegram-bot, message intake and processing
-- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (behind nginx)
+- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (nginx exposes only `/api/chat` and `/health`; `/metrics` is internal-network only)
 - **followup** — background reminders and follow-up touches
 - **watchdog** — service health checks, Telegram alerts
 - **backup** — SQLite backups via the sqlite3 backup API
@@ -70,45 +70,59 @@ Data: SQLite in `data/` (volume), schema managed by Alembic migrations (`src/sto
 
 ## Multi-Channel Support
 
-Currently implemented: Telegram (production-ready), WhatsApp Business API (stub).
+Telegram: the most tested channel (prototype stage). Web: demo channel.
+WhatsApp: adapter stub, not wired into the app.
 Architecture supports adding: Slack (Bot API), SMS via Twilio, Facebook Messenger (Meta Business API), Microsoft Teams (Bot Framework).
 
 Channels are isolated entrypoints sharing the same message processor. They use the common `IncomingMessage` contract and `OutgoingAdapter` protocol (`src/channels/base.py`); there is no plugin registry — adding a channel means adding an entrypoint plus an adapter.
 
 ## Security
-The project passed a full security audit (2026-08-07). Implemented:
-- Fail-closed configuration authentication — required variables (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are verified at startup, no defaults
-- Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` and `/metrics` (HTTP 429)
+Security measures below were reviewed in an AI-assisted self-review
+(see docs/security.md). This is not an independent audit.
+- Fail-fast configuration validation: required variables are checked at startup, no defaults for secrets.
+- Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` (HTTP 429)
+- `/metrics` is not exposed through nginx (returns 404); it is reachable only inside the Docker network
 - Security headers: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
 - Conversation safety: blocked phrases, refusal limit, safe messages by default
 - WAL + `busy_timeout=5000` (database locking eliminated)
 - Scheduled backups (every 6 h by default) with rotation (7 days by default)
-- .dockerignore + .gitignore — `.env`, `data/`, tests, and docs excluded from the Docker image and git
-- Multi-container deployment (build → up -d) with zero downtime
+- `.env` and `data/` are git-ignored; `.env`, `data/`, tests and docs are excluded from the Docker image (`.dockerignore`).
+- Multi-container deployment (build → up -d)
 
 All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
 ## Installation
 1. Copy `.env.example` to `.env`
 2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
-3. `docker-compose up -d`
+3. Generate self-signed TLS certificates for local use: `make certs`
+4. `docker-compose up -d`
+5. After the first start, give the containers write access to SQLite and restart them: `sudo chown -R 1000:1000 data/ && docker-compose restart`. Containers run as UID 1000; otherwise SQLite opens read-only (see [Deployment](#deployment)).
+
+`make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
 
 ## Try It Without Telegram
 
 The web channel runs on the same message processor as the bot, so the full flow works without a Telegram token:
 
 ```bash
+make certs
 docker compose up -d web nginx
+sudo chown -R 1000:1000 data/   # containers run as UID 1000 (see Deployment)
+docker compose restart web
 curl -s -X POST http://localhost:80/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
 ```
 
-`POST /api/chat` takes `channel_id` (any stable client-side string identifying the conversation) and `text`, and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; `GET /api/chat/{channel_id}/messages` returns the stored replies.
+`make certs` generates a self-signed certificate for local demonstration. A public server needs a trusted Let's Encrypt certificate — see [docs/ssl_setup.md](docs/ssl_setup.md).
+
+`POST /api/chat` takes `channel_id` (1-64 chars, letters/digits/`_`/`-`) and `text` (1-2000 chars), and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; replies are returned per request and are not stored in memory. Cross-origin browser access is disabled by default; set `CORS_ALLOW_ORIGINS` (comma-separated) to allow specific origins.
 
 Only `OPENAI_API_KEY` is required for the web demo — `TELEGRAM_BOT_TOKEN` is needed only by the `telegram` service. If port 80 is busy, set `NGINX_PORT` in `.env` and use that port in the URL.
 
 ## Deployment
+A public server must use trusted Let's Encrypt certificates; `make certs` is for local demonstration only. See [docs/ssl_setup.md](docs/ssl_setup.md).
+
 ```bash
 docker-compose build && docker-compose up -d
 docker-compose logs -f --tail=30
@@ -118,19 +132,45 @@ After the first deployment: `chown -R <container uid> data/` (otherwise SQLite w
 
 ## Tests
 
-The project includes 31 test files (unit + integration):
+The project includes 33 test files with 291 test functions (unit + integration); measured statement coverage is 78% (`pytest --cov=src`):
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements-dev.txt
 pytest -q
 ```
 
-## Scope & Authorship
+## Authorship & How This Was Built
 
-This project was designed and implemented entirely by the author:
-Telegram bot, FastAPI backend, WhatsApp adapter stub, LLM integration,
-lead state machine, CRM provider interface, follow-up engine, monitoring,
-tests, and CI/CD.
+I am not a professional software developer. This project was built with AI
+coding assistants ("vibe coding"). My role: I define the product idea,
+requirements and acceptance criteria, direct the AI tools through a documented
+multi-role workflow (see `docs/process/` and `docs/PROJECT_STATE.md`), run the
+results, review behavior, and decide what ships. Most of the code was generated
+by AI models; I did not write it line by line by hand.
+
+What this means for you as a reader:
+- I can explain the product, the architecture and the behavior at a high level,
+  but this repository is **not** evidence of classic programming experience.
+- Reviews and "audits" in this repo (`docs/security.md`, `docs/reports/`) are
+  AI-assisted self-reviews, **not** independent third-party audits.
+- What this repository does show: my ability to specify software, orchestrate AI
+  tools, set up tests/CI/deployment, and iterate to a working prototype.
+
+## Data & Privacy
+
+The bot collects the patient's name and phone number during lead qualification.
+Message texts are sent to an external LLM service (OpenAI) for processing. For
+real-world use you need the patient's consent, a data-retention policy, and a
+review of local personal-data legislation. This project does not claim
+compliance with any privacy or medical-data regulation.
+
+## What I Would Do Next
+
+1. Real CRM integration (replace the mock provider with a client's actual CRM).
+2. Web-channel authentication for production.
+3. Load testing.
+4. Independent code review.
+5. WhatsApp webhook signature verification.
 
 ## Limitations
 

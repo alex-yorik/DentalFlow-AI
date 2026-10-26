@@ -3,10 +3,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.config.loader import AppConfig, load_client_config
-from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.llm.client import LLMClient
 from src.channels.telegram.handlers import handle_message
-from src.leads.models import Lead, LeadState
+from src.leads.models import LeadState
 from src.leads.repository import get_lead_by_chat_id, create_lead, update_lead
 from src.leads.state_machine import apply_transition
 from src.followup import FollowUpEngine
@@ -141,7 +141,6 @@ class TestCrmFailureRecovery:
 
     async def test_blocked_transition_logs_warning(self, mock_update, mock_context, db, caplog):
         """Task 3: blocked transitions must produce a warning log."""
-        chat_id = mock_update.effective_chat.id
         mock_update.message.text = "book me"
         mock_context.bot_data["llm_client"].analyze.return_value = _make_output(
             intent=Intent.LEAD,
