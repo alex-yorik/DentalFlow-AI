@@ -229,3 +229,15 @@ docker compose down && rm -rf /tmp/df-t8
 ### Статус PR
 
 PR #1 **НЕ смержен**. Ветка запушена, head проверен, требуется приёмка владельца.
+
+## v2 / U0. Baseline (post-PR-#1)
+
+- Date: 2026-10-26
+- Branch: `chore/polish-v2` (from `main` @ `fd8c7a5`, merge PR #1); tag `pre-polish-v2` → `main` @ `fd8c7a5` (pushed to origin)
+- Environment: Python 3.12.3, clean venv `/tmp/df-v2-venv` built from `requirements-dev.txt` only
+- pytest: 298 passed, 0 failed, 3 skipped, coverage 78%
+- ruff: 0 issues (`All checks passed!`)
+- mypy: 0 issues in 57 files (`Success: no issues found in 57 source files`)
+- bandit: Medium 0, High 0 (Low 3)
+- Test files: 33
+- Test functions: 291
