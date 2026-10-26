@@ -94,27 +94,29 @@ Security measures below were reviewed in an AI-assisted self-review
 All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
 ## Installation
-1. Copy `.env.example` to `.env`
-2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
-3. Generate self-signed TLS certificates for local use: `make certs`
-4. `docker-compose up -d`
-5. After the first start, give the containers write access to SQLite and restart them: `sudo chown -R 1000:1000 data/ && docker-compose restart`. Containers run as UID 1000; otherwise SQLite opens read-only (see [Deployment](#deployment)).
+1. `make init` — create `data/` and copy `.env.example` to `.env` if needed.
+2. Edit `.env`: set `OPENAI_API_KEY`. For OpenRouter or another OpenAI-compatible endpoint, also set `OPENAI_BASE_URL` and `OPENAI_MODEL`. `TELEGRAM_BOT_TOKEN` is needed only for the Telegram service.
+3. `make demo` — build and start `web` + `nginx`, wait until `web` is healthy, and generate local TLS certificates.
 
 `make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
+
+Containers run as UID 1000. `make init` creates `data/` as your current user; if your UID is not 1000, it prints a hint. To fix permissions, run `sudo chown -R 1000:1000 data/` (not needed when your user is UID 1000).
 
 ## Try It Without Telegram
 
 The web channel runs on the same message processor as the bot, so the full flow works without a Telegram token:
 
 ```bash
-make certs
-docker compose up -d web nginx
-sudo chown -R 1000:1000 data/   # containers run as UID 1000 (see Deployment)
-docker compose restart web
-curl -s -X POST http://localhost:80/api/chat \
+make init
+# edit .env: set OPENAI_API_KEY (and OPENAI_BASE_URL/OPENAI_MODEL for OpenRouter)
+make demo
+curl -sk https://localhost:443/health
+curl -sk -X POST https://localhost:443/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
 ```
+
+If you changed `NGINX_SSL_PORT` in `.env`, use that port in the URL instead of `443`.
 
 `make certs` generates a self-signed certificate for local demonstration. A public server needs a trusted Let's Encrypt certificate — see [docs/ssl_setup.md](docs/ssl_setup.md).
 

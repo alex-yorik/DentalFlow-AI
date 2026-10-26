@@ -1,6 +1,8 @@
-.PHONY: help install lint typecheck test build certs clean
+.PHONY: help init demo install lint typecheck test build certs clean
 
 help:
+	@echo "init       — Create data/, copy .env.example to .env if missing"
+	@echo "demo       — Build and start web + nginx, wait for health"
 	@echo "install    — Install dev dependencies"
 	@echo "lint       — Run ruff linter"
 	@echo "typecheck  — Run mypy type checker"
@@ -8,6 +10,14 @@ help:
 	@echo "build      — Build Docker image"
 	@echo "certs      — Generate self-signed TLS certificates for local use"
 	@echo "clean      — Remove __pycache__"
+
+init:
+	mkdir -p data
+	@test -f .env || (cp .env.example .env && echo ">>> Created .env: set OPENAI_API_KEY (and other values) in it")
+	@if [ "$$(id -u)" != "1000" ]; then echo ">>> Containers run as UID 1000. If the app cannot write to data/, run: sudo chown -R 1000:1000 data/"; fi
+
+demo: init certs
+	docker compose up -d --build --wait web nginx
 
 install:
 	python3 -m pip install -r requirements-dev.txt
