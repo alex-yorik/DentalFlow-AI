@@ -1,10 +1,10 @@
 from src.leads.models import LeadState
 from src.leads.repository import (
     create_lead,
-    get_lead_by_chat_id,
-    update_lead,
-    lead_exists,
     delete_lead,
+    get_lead_by_chat_id,
+    lead_exists,
+    update_lead,
 )
 
 

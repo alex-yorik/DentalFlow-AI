@@ -1,7 +1,7 @@
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
+from src.channels.telegram.handlers import handle_message, start_command
 from src.config.loader import AppConfig
-from src.channels.telegram.handlers import start_command, handle_message
 from src.followup import FollowUpEngine
 from src.llm.client import LLMClient
 

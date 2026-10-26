@@ -2,14 +2,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from src.channels.telegram.handlers import handle_message, start_command
 from src.config.loader import AppConfig, load_client_config
-from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
-from src.llm.client import LLMClient
-from src.channels.telegram.handlers import start_command, handle_message
-from src.leads.models import LeadState
-from src.leads.repository import get_lead_by_chat_id, create_lead, update_lead
-from src.leads.state_machine import apply_transition
 from src.followup import FollowUpEngine
+from src.leads.models import LeadState
+from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
+from src.leads.state_machine import apply_transition
+from src.llm.client import LLMClient
+from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
 from tests.conftest import CLIENT_NAME
 
 

@@ -46,7 +46,7 @@ async def run_watchdog(config) -> None:
             logger.error("Watchdog tick failed: %s", e)
         try:
             await asyncio.wait_for(shutdown_event.wait(), timeout=config.monitoring.watchdog_interval)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
     await close_connection()

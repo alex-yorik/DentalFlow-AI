@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import cast
 
 from telegram import Update
@@ -112,7 +112,7 @@ async def handle_message(
             followup_engine = context.bot_data.get("followup_engine")
             if followup_engine:
                 await followup_engine.cancel_followup(lead.id)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             conn = await database.get_connection()
             await conn.execute(
                 "UPDATE leads SET followup_task_id = NULL, updated_at = ? WHERE id = ?",

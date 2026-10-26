@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import aiosqlite
 import pytest
@@ -38,7 +38,7 @@ async def test_worker_healthy_when_heartbeat_fresh(monkeypatch, monitoring_db):
     monkeypatch.setattr("src.monitoring.heartbeat.get_connection", monitoring_db)
     monkeypatch.setattr("src.monitoring.watchdog.get_connection", monitoring_db)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await write_heartbeat("telegram", now)
 
     watchdog = Watchdog(_cfg(heartbeat=30))
@@ -50,7 +50,7 @@ async def test_worker_down_when_heartbeat_stale(monkeypatch, monitoring_db):
     monkeypatch.setattr("src.monitoring.heartbeat.get_connection", monitoring_db)
     monkeypatch.setattr("src.monitoring.watchdog.get_connection", monitoring_db)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await write_heartbeat("telegram", now - timedelta(seconds=200))
 
     watchdog = Watchdog(_cfg(heartbeat=30))
@@ -61,4 +61,4 @@ async def test_worker_down_when_heartbeat_stale(monkeypatch, monitoring_db):
 async def test_worker_down_when_no_heartbeat(monkeypatch, monitoring_db):
     monkeypatch.setattr("src.monitoring.watchdog.get_connection", monitoring_db)
     watchdog = Watchdog(_cfg(heartbeat=30))
-    assert await watchdog._default_probe("telegram", datetime.now(timezone.utc)) is False
+    assert await watchdog._default_probe("telegram", datetime.now(UTC)) is False

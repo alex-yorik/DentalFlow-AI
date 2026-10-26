@@ -1,10 +1,10 @@
 import asyncio
-
 import inspect
+
 from fastapi.testclient import TestClient
 
-from src.entrypoints import web
 from src.entrypoints import followup as followup_entry
+from src.entrypoints import web
 
 
 class TestWebEntrypoint:

@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 
 from src.channels.web.adapter import router
 from src.leads.models import Lead
-from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.llm.client import LLMClient
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 
 
 def _make_lead(**overrides) -> Lead:

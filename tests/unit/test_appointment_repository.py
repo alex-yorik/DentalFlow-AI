@@ -1,16 +1,15 @@
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 from src.leads.models import Lead
 from src.storage.appointment_repository import (
-    find_existing_appointment,
     create_appointment,
+    find_existing_appointment,
     update_appointment_datetime,
 )
 
 
 def _lead(chat_id=42, name="John", phone="555-0100", service="Cleaning") -> Lead:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Lead(
         id="lead-1",
         channel_user_id=chat_id,

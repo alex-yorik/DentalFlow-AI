@@ -1,20 +1,19 @@
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import aiosqlite
 
+from src.leads.models import Lead
 from src.storage import database
 from src.storage.database import StorageError
-from src.leads.models import Lead
 
 logger = logging.getLogger(__name__)
 
 STATUS_SCHEDULED = "scheduled"
 
 
-async def _find_by_phone(phone: str) -> Optional[dict]:
+async def _find_by_phone(phone: str) -> dict | None:
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -35,16 +34,16 @@ async def _find_by_phone(phone: str) -> Optional[dict]:
 
 
 async def find_existing_appointment(
-    name: Optional[str],
-    phone: Optional[str],
-) -> Optional[dict]:
+    name: str | None,
+    phone: str | None,
+) -> dict | None:
     if not phone:
         return None
     return await _find_by_phone(phone)
 
 
-async def create_appointment(lead: Lead, appointment_datetime: Optional[str] = None) -> str:
-    now = datetime.now(timezone.utc)
+async def create_appointment(lead: Lead, appointment_datetime: str | None = None) -> str:
+    now = datetime.now(UTC)
     appointment_id = str(uuid.uuid4())
     try:
         conn = await database.get_connection()
@@ -72,7 +71,7 @@ async def create_appointment(lead: Lead, appointment_datetime: Optional[str] = N
 
 
 async def update_appointment_datetime(appointment_id: str, appointment_datetime: str) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:

@@ -1,19 +1,18 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-
+from src.config.loader import QualificationConfig
 from src.leads.models import Lead, LeadState
 from src.leads.state_machine import (
+    ACTION_TO_STATE,
+    apply_transition,
     suggest_state,
     validate_transition,
-    apply_transition,
-    ACTION_TO_STATE,
 )
 from src.llm.contracts import SuggestedAction
-from src.config.loader import QualificationConfig
 
 
 def _lead(state: LeadState = LeadState.NEW, **kwargs) -> Lead:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Lead(
         id="test-id",
         channel_user_id=999,

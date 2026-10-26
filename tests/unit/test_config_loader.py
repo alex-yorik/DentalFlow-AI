@@ -3,15 +3,15 @@ import json
 import pytest
 
 from src.config.loader import (
-    ClientConfig,
-    BusinessInfo,
-    Service,
-    FAQItem,
-    RulesConfig,
-    QualificationConfig,
-    FollowUpConfig,
-    load_client_config,
     CLIENTS_DIR,
+    BusinessInfo,
+    ClientConfig,
+    FAQItem,
+    FollowUpConfig,
+    QualificationConfig,
+    RulesConfig,
+    Service,
+    load_client_config,
 )
 
 

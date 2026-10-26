@@ -2,13 +2,13 @@
 
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class Metrics:
     def __init__(self) -> None:
         self._started = time.monotonic()
-        self._started_dt = datetime.now(timezone.utc)
+        self._started_dt = datetime.now(UTC)
         self._lock = threading.Lock()
         self._counters: dict[str, int] = {}
 

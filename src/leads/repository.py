@@ -1,7 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 
@@ -39,7 +39,7 @@ def _row_to_lead(row) -> Lead:
 
 
 async def create_lead(channel_user_id: int, source: str = "telegram", channel_type: str = "telegram") -> Lead:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lead = Lead(
         id=str(uuid.uuid4()),
         channel_user_id=channel_user_id,
@@ -103,7 +103,7 @@ async def get_lead_by_chat_id(channel_user_id: int) -> Lead | None:
 
 
 async def update_lead(lead: Lead) -> None:
-    lead.updated_at = datetime.now(timezone.utc)
+    lead.updated_at = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:

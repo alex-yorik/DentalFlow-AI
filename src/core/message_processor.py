@@ -1,20 +1,20 @@
 import logging
 
-from src.config.loader import AppConfig, QualificationConfig
-from src.llm.contracts import AIInput, Intent
-from src.llm.client import LLMClient
-from src.rules.validator import validate_ai_output
-from src.rules.safety import check_safety
-from src.rules.qualification import calculate_score
-from src.leads.models import Lead, LeadState, PHONE_PATTERN, EMAIL_PATTERN
-from src.leads.repository import update_lead
-from src.leads.state_machine import suggest_state, validate_transition, apply_transition
-from src.integrations.notifications import notify_staff
 from src.channels.base import IncomingMessage, OutgoingAdapter
+from src.config.loader import AppConfig, QualificationConfig
 from src.followup import FollowUpEngine
+from src.integrations.notifications import notify_staff
+from src.leads.models import EMAIL_PATTERN, PHONE_PATTERN, Lead, LeadState
+from src.leads.repository import update_lead
+from src.leads.state_machine import apply_transition, suggest_state, validate_transition
+from src.llm.client import LLMClient
+from src.llm.contracts import AIInput, Intent
 from src.monitoring.metrics import metrics
-from src.storage.conversation_repository import append_message, get_recent_messages
+from src.rules.qualification import calculate_score
+from src.rules.safety import check_safety
+from src.rules.validator import validate_ai_output
 from src.storage.appointment_repository import create_appointment
+from src.storage.conversation_repository import append_message, get_recent_messages
 
 logger = logging.getLogger(__name__)
 

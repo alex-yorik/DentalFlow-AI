@@ -1,5 +1,5 @@
-from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.config.loader import RulesConfig
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.rules.validator import validate_ai_output
 
 RULES = RulesConfig(

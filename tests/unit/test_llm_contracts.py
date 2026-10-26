@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from src.llm.contracts import AIOutput, AIInput, ExtractedField, Intent, SuggestedAction
+from src.llm.contracts import AIInput, AIOutput, ExtractedField, Intent, SuggestedAction
 
 
 class TestExtractedField:

@@ -1,5 +1,5 @@
-from src.leads.models import Lead
 from src.config.loader import QualificationConfig, ScoringRule
+from src.leads.models import Lead
 
 
 class QualificationResult:

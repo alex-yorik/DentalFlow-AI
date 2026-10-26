@@ -2,7 +2,6 @@ import enum
 import logging
 import re
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -27,21 +26,21 @@ class Lead(BaseModel):
     id: str
     channel_user_id: int
     state: LeadState = LeadState.NEW
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    service_interest: Optional[str] = None
-    intent: Optional[str] = None
-    urgency: Optional[str] = None
-    preferred_time: Optional[str] = None
+    name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    service_interest: str | None = None
+    intent: str | None = None
+    urgency: str | None = None
+    preferred_time: str | None = None
     source: str = "telegram"
     channel_type: str = "telegram"
     qualification_score: int = 0
     conversation_summary: str = ""
     opt_in_consent: bool = False
     internal_tags: list[str] = []
-    crm_contact_id: Optional[str] = None
-    followup_task_id: Optional[str] = None
+    crm_contact_id: str | None = None
+    followup_task_id: str | None = None
     refusal_count: int = 0
     created_at: datetime
     updated_at: datetime

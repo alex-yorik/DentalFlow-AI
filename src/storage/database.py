@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import cast
 
 import aiosqlite
-from alembic.config import Config
 from alembic.command import upgrade
+from alembic.config import Config
 
 DB_PATH = Path("data/database.db")
 

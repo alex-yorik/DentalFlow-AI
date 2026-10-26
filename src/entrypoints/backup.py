@@ -37,7 +37,7 @@ async def run_backup(config: AppConfig) -> None:
 
         try:
             await asyncio.wait_for(shutdown_event.wait(), timeout=interval)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
 

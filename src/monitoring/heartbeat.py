@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.storage.database import get_connection
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def write_heartbeat(service: str, now: datetime | None = None) -> None:
     """UPSERT the last_beat timestamp for a worker service."""
-    ts = now or datetime.now(timezone.utc)
+    ts = now or datetime.now(UTC)
     conn = await get_connection()
     await conn.execute(
         """
@@ -54,5 +54,5 @@ class HeartbeatWriter:
                 logger.error("Heartbeat write failed for %s: %s", self._service, e)
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=self._interval)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass

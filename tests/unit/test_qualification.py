@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from src.leads.models import Lead, LeadState
 from src.config.loader import QualificationConfig, ScoringRule
+from src.leads.models import Lead, LeadState
 from src.rules.qualification import calculate_score
-
 
 QUAL_CONFIG = QualificationConfig(
     critical_fields=["name", "phone", "service_interest"],
@@ -21,7 +20,7 @@ QUAL_CONFIG = QualificationConfig(
 
 
 def _lead(**kwargs) -> Lead:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Lead(
         id="test-id",
         channel_user_id=999,

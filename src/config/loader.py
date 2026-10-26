@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,7 +37,7 @@ class RulesConfig(BaseModel):
 class ScoringRule(BaseModel):
     attribute: str
     match: Literal["presence", "equals"]
-    value: Optional[str] = None
+    value: str | None = None
 
 
 def _default_rule_map() -> dict[str, ScoringRule]:
@@ -90,7 +90,7 @@ class BackupConfig(BaseModel):
 class MonitoringConfig(BaseModel):
     watchdog_interval: int = 30
     heartbeat_interval: int = 30
-    alerts_chat_id: Optional[int] = None
+    alerts_chat_id: int | None = None
     alert_cooldown_minutes: int = 15
     web_health_url: str = "http://localhost:8080/health"
 

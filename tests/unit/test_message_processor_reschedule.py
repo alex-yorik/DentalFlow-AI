@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from src.core.message_processor import process_message
 from src.channels.base import IncomingMessage
+from src.core.message_processor import process_message
 from src.leads.models import Lead, LeadState
 from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
 from src.storage.appointment_repository import (
@@ -22,7 +22,7 @@ class _RecorderClient:
 
 
 def _lead(chat_id=42, name="John", phone="555-0100", service="Cleaning"):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Lead(
         id="lead-1", channel_user_id=chat_id, state=LeadState.COLLECT_FIELDS,
         name=name, phone=phone, service_interest=service,

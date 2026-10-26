@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
-from src.llm.contracts import AIOutput, Intent, SuggestedAction, ExtractedField
 from src.config.loader import RulesConfig
 from src.leads.models import Lead
+from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
 from src.rules.safety import check_safety
 
 RULES = RulesConfig(
@@ -45,8 +45,8 @@ def _lead(**kwargs) -> Lead:
     defaults = dict(
         id="test_lead_id",
         channel_user_id=99999,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     defaults.update(kwargs)
     return Lead(**defaults)

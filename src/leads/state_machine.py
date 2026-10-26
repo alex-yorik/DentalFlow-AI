@@ -1,8 +1,7 @@
+from src.config.loader import QualificationConfig
 from src.leads.models import Lead, LeadState
 from src.llm.contracts import SuggestedAction
-from src.config.loader import QualificationConfig
 from src.rules.qualification import calculate_score
-
 
 ACTION_TO_STATE: dict[SuggestedAction, LeadState] = {
     SuggestedAction.ANSWER_FAQ: LeadState.FAQ_ONLY,

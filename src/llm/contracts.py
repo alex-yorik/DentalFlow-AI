@@ -1,5 +1,4 @@
 import enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +39,7 @@ class AIOutput(BaseModel):
     crm_write_allowed: bool = Field(description="Whether CRM write is appropriate")
     schedule_followup: bool = Field(description="Whether to schedule a follow-up")
     escalation_needed: bool = Field(description="Whether to notify a human")
-    escalation_reason: Optional[str] = Field(default=None)
+    escalation_reason: str | None = Field(default=None)
     is_fallback: bool = False
 
 
