@@ -90,6 +90,7 @@ Security measures below were reviewed in an AI-assisted self-review
 - Scheduled backups (every 6 h by default) with rotation (7 days by default)
 - `.env` and `data/` are git-ignored; `.env`, `data/`, tests and docs are excluded from the Docker image (`.dockerignore`).
 - Multi-container deployment (build → up -d)
+- Full git history was scanned with gitleaks (8.30.1, 2026-10-26): the only finding is a throwaway self-signed localhost key committed early and since removed (see `docs/security.md`).
 
 All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
