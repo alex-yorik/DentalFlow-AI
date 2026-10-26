@@ -1,7 +1,8 @@
 import asyncio
+import contextlib
 import logging
 import uuid
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import aiosqlite
 from telegram import Bot
@@ -200,10 +201,8 @@ class FollowUpEngine:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         logger.info("FollowUpEngine stopped")
 
     async def schedule_followup(self, lead: Lead) -> None:
@@ -240,7 +239,7 @@ class FollowUpEngine:
                 await asyncio.sleep(interval)
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 # poll loop must survive arbitrary task errors
                 logger.error("FollowUpEngine loop error: %s", e)
                 await asyncio.sleep(interval)
 
@@ -259,7 +258,7 @@ class FollowUpEngine:
         for task in tasks:
             try:
                 await self._send_followup(task)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 # one failed task must not stop the poll loop
                 logger.error("Failed to send follow-up task %s: %s", task.id, e)
 
     async def _send_followup(self, task: FollowUpTask) -> None:
@@ -286,7 +285,7 @@ class FollowUpEngine:
 
         try:
             await self.bot.send_message(chat_id=task.chat_id, text=message)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 # delivery errors must still reset task state
             logger.error("Failed to send follow-up message to chat %s: %s", task.chat_id, e)
             await _update_task_status(task.id, "pending")
             return
@@ -310,7 +309,11 @@ class FollowUpEngine:
 
     def _get_template(self, followup: FollowUpConfig, retry_count: int, has_appointment: bool = False) -> str | None:
         if retry_count == 0:
-            return followup.templates.get("existing_appointment") if has_appointment else followup.templates.get("initial")
+            return (
+                followup.templates.get("existing_appointment")
+                if has_appointment
+                else followup.templates.get("initial")
+            )
         elif retry_count < followup.max_retries:
             return followup.templates.get("reminder")
         return followup.templates.get("final")

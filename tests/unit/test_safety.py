@@ -24,30 +24,30 @@ SAFE_PHRASES_RULES = RulesConfig(
 
 
 def _output(**kwargs) -> AIOutput:
-    defaults = dict(
-        intent=Intent.FAQ,
-        confidence=0.95,
-        reply_text="We are open Mon-Fri.",
-        is_lead=False,
-        extracted_fields=[],
-        missing_fields=[],
-        suggested_action=SuggestedAction.ANSWER_FAQ,
-        safe=True,
-        crm_write_allowed=False,
-        schedule_followup=False,
-        escalation_needed=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ,
+        "confidence": 0.95,
+        "reply_text": "We are open Mon-Fri.",
+        "is_lead": False,
+        "extracted_fields": [],
+        "missing_fields": [],
+        "suggested_action": SuggestedAction.ANSWER_FAQ,
+        "safe": True,
+        "crm_write_allowed": False,
+        "schedule_followup": False,
+        "escalation_needed": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 
 
 def _lead(**kwargs) -> Lead:
-    defaults = dict(
-        id="test_lead_id",
-        channel_user_id=99999,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-    )
+    defaults = {
+        "id": "test_lead_id",
+        "channel_user_id": 99999,
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
+    }
     defaults.update(kwargs)
     return Lead(**defaults)
 

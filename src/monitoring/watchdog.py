@@ -38,7 +38,7 @@ async def _probe_web(url: str, timeout: float = 5.0) -> bool:
 
     try:
         return await asyncio.to_thread(_request)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 # any probe failure is reported as "down"
         return False
 
 
@@ -50,7 +50,7 @@ async def _probe_worker(service: str, max_age_seconds: int, now: datetime | None
             "SELECT last_beat FROM service_heartbeats WHERE service = ?", (service,)
         )
         row = await cur.fetchone()
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 # storage probe failure is reported as "down"
         return False
     if row is None or row[0] is None:
         return False

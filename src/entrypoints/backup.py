@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import signal
 from pathlib import Path
@@ -31,14 +32,12 @@ async def run_backup(config: AppConfig) -> None:
             await asyncio.to_thread(create_backup, DB_PATH, BACKUPS_DIR)
             await asyncio.to_thread(rotate, BACKUPS_DIR, config.backup.retention_days)
             logger.info("Backup cycle completed")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 # backup loop must survive any error and alert
             logger.error("Backup failed: %s", e)
             await alerter.send_backup_failure(str(e))
 
-        try:
+        with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(shutdown_event.wait(), timeout=interval)
-        except TimeoutError:
-            pass
 
 
 if __name__ == "__main__":

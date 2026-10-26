@@ -42,15 +42,15 @@ def _make_config(staff_chat_id: int = 123456789) -> AppConfig:
 
 
 def _make_lead(**overrides) -> Lead:
-    defaults = dict(
-        id="1",
-        channel_user_id=12345,
-        state=LeadState.FOLLOWUP_PENDING,
-        name="Test User",
-        phone="+1234567890",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-    )
+    defaults = {
+        "id": "1",
+        "channel_user_id": 12345,
+        "state": LeadState.FOLLOWUP_PENDING,
+        "name": "Test User",
+        "phone": "+1234567890",
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+    }
     defaults.update(overrides)
     return Lead(**defaults)
 

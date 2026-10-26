@@ -48,20 +48,20 @@ def mock_context(config, mock_llm):
 
 
 def _make_output(**kwargs) -> AIOutput:
-    defaults = dict(
-        intent=Intent.FAQ,
-        confidence=0.95,
-        reply_text="We are open Mon-Fri 8-5.",
-        is_lead=False,
-        extracted_fields=[],
-        missing_fields=[],
-        suggested_action=SuggestedAction.ANSWER_FAQ,
-        safe=True,
-        crm_write_allowed=False,
-        schedule_followup=False,
-        escalation_needed=False,
-        is_fallback=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ,
+        "confidence": 0.95,
+        "reply_text": "We are open Mon-Fri 8-5.",
+        "is_lead": False,
+        "extracted_fields": [],
+        "missing_fields": [],
+        "suggested_action": SuggestedAction.ANSWER_FAQ,
+        "safe": True,
+        "crm_write_allowed": False,
+        "schedule_followup": False,
+        "escalation_needed": False,
+        "is_fallback": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 

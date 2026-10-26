@@ -19,7 +19,7 @@ async def notify_staff_followup_complete(config: AppConfig, lead: Lead, bot: Bot
     try:
         await bot.send_message(chat_id=staff_chat_id, text=message)
         logger.info("Follow-up completion notification sent for lead %s", lead.id)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 # notification failure must not break follow-up flow
         logger.error("Failed to notify staff about followup completion: %s", e)
 
 
@@ -40,5 +40,5 @@ async def notify_staff(config: AppConfig, lead: Lead, bot: Bot) -> None:
     try:
         await bot.send_message(chat_id=staff_chat_id, text=message)
         logger.info("Staff notification sent for lead %s (chat %s)", lead.id, lead.channel_user_id)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 # notification failure must not break lead flow
         logger.error("Failed to send staff notification: %s", e)

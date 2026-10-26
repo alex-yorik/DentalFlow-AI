@@ -11,7 +11,7 @@ PHONE_PATTERN = re.compile(r'^[\d\s\-\+\(\)]{7,20}$')
 EMAIL_PATTERN = re.compile(r'^[\w\.-]+@[\w\.-]+\.\w+$')
 
 
-class LeadState(str, enum.Enum):
+class LeadState(enum.StrEnum):
     NEW = "new"
     FAQ_ONLY = "faq_only"
     COLLECT_FIELDS = "collect_fields"

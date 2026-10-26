@@ -1,6 +1,7 @@
 """Heartbeat writer: workers report liveness to the shared SQLite table."""
 
 import asyncio
+import contextlib
 import logging
 from datetime import UTC, datetime
 
@@ -39,10 +40,8 @@ class HeartbeatWriter:
         self._stop.set()
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
 
     async def _run(self) -> None:
@@ -50,9 +49,7 @@ class HeartbeatWriter:
         while not self._stop.is_set():
             try:
                 await write_heartbeat(self._service)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001 # heartbeat loop must survive storage errors
                 logger.error("Heartbeat write failed for %s: %s", self._service, e)
-            try:
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(self._stop.wait(), timeout=self._interval)
-            except TimeoutError:
-                pass

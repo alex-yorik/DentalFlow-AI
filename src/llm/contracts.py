@@ -3,7 +3,7 @@ import enum
 from pydantic import BaseModel, Field
 
 
-class Intent(str, enum.Enum):
+class Intent(enum.StrEnum):
     FAQ = "faq"
     LEAD = "lead"
     RESCHEDULE = "reschedule"
@@ -11,7 +11,7 @@ class Intent(str, enum.Enum):
     UNSAFE = "unsafe"
 
 
-class SuggestedAction(str, enum.Enum):
+class SuggestedAction(enum.StrEnum):
     ANSWER_FAQ = "answer_faq"
     ASK_FIELD = "ask_field"
     QUALIFY = "qualify"

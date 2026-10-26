@@ -41,7 +41,7 @@ Real transcript from a live session against the Bright Smile Dental demo configu
 - SQLite (aiosqlite, WAL) + Alembic (migrations)
 - Pydantic v2 (config validation)
 - Docker + docker-compose
-- pytest / pytest-asyncio (tests), ruff / mypy (linting and typing)
+- pytest / pytest-asyncio (tests), ruff (rule families: E, F, W, I, UP, B, C4, SIM, BLE), mypy (default strictness plus warn_unused_ignores, warn_redundant_casts), bandit (medium+ severity)
 
 ## Architecture
 

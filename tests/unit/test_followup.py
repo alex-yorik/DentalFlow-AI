@@ -15,17 +15,17 @@ from src.storage.appointment_repository import create_appointment
 
 def _make_task(lead_id: str, chat_id: int, **overrides) -> FollowUpTask:
     now = datetime.now(UTC)
-    defaults = dict(
-        id=str(uuid.uuid4()),
-        lead_id=lead_id,
-        chat_id=chat_id,
-        retry_count=0,
-        max_retries=2,
-        next_run_at=now,
-        status="pending",
-        created_at=now,
-        updated_at=now,
-    )
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "chat_id": chat_id,
+        "retry_count": 0,
+        "max_retries": 2,
+        "next_run_at": now,
+        "status": "pending",
+        "created_at": now,
+        "updated_at": now,
+    }
     defaults.update(overrides)
     return FollowUpTask(**defaults)
 
@@ -156,7 +156,13 @@ async def test_send_followup_full_cycle_reschedule(db):
     await update_lead(lead)
 
     now = datetime.now(UTC)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=2,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -184,7 +190,13 @@ async def test_send_followup_full_cycle_complete(db):
     await update_lead(lead)
 
     now = datetime.now(UTC)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=1,
+    )
     await _insert_task(task)
 
     config = _make_engine_config(overrides={"max_retries": 1})
@@ -225,7 +237,13 @@ async def test_send_followup_uses_existing_appointment_template(db):
     await create_appointment(lead)
 
     now = datetime.now(UTC)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=2,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -276,7 +294,13 @@ async def test_send_followup_dual_acquire(db):
     await update_lead(lead)
 
     now = datetime.now(UTC)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=1,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()

@@ -32,13 +32,13 @@ def _lead(chat_id=42, name="John", phone="555-0100", service="Cleaning"):
 
 
 def _output(**kwargs):
-    defaults = dict(
-        intent=Intent.FAQ, confidence=0.95, reply_text="ok", is_lead=False,
-        extracted_fields=[], missing_fields=[],
-        suggested_action=SuggestedAction.CLOSE, safe=True,
-        crm_write_allowed=False, schedule_followup=False,
-        escalation_needed=False, is_fallback=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ, "confidence": 0.95, "reply_text": "ok", "is_lead": False,
+        "extracted_fields": [], "missing_fields": [],
+        "suggested_action": SuggestedAction.CLOSE, "safe": True,
+        "crm_write_allowed": False, "schedule_followup": False,
+        "escalation_needed": False, "is_fallback": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 

@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import time
 from collections import defaultdict, deque
@@ -59,10 +60,7 @@ def _extract_text_after_start(text: str | None) -> str | None:
     if not first_line.startswith("/start"):
         return None
     parts = first_line.split(" ", 1)
-    if len(parts) > 1:
-        trailing = parts[1] + (sep + rest if sep else "")
-    else:
-        trailing = rest
+    trailing = parts[1] + (sep + rest if sep else "") if len(parts) > 1 else rest
     trailing = trailing.strip()
     return trailing or None
 
@@ -148,9 +146,7 @@ async def handle_message(
         )
     except Exception as e:
         logger.error("Unhandled error in handle_message for chat %s: %s", chat_id, e, exc_info=True)
-        try:
+        with contextlib.suppress(Exception):
             await message.reply_text(
                 config.client.business.messages.get("error_generic", "")
             )
-        except Exception:
-            pass

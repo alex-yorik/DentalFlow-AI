@@ -14,7 +14,7 @@ def _nginx_reachable() -> bool:
     try:
         with urllib.request.urlopen(f"{BASE_URL}/health", timeout=2):
             return True
-    except Exception:
+    except OSError:
         return False
 
 

@@ -22,10 +22,7 @@ class TransitionResult:
 
 
 def _has_critical_fields(lead: Lead, config: QualificationConfig) -> bool:
-    for field in config.critical_fields:
-        if getattr(lead, field, None) is None:
-            return False
-    return True
+    return all(getattr(lead, field, None) is not None for field in config.critical_fields)
 
 
 _TRANSITION_TABLE: dict[tuple[LeadState, LeadState], str] = {
@@ -76,12 +73,16 @@ def validate_transition(
             reason=f"transition {from_state.value} → {to_state.value} not in transition table",
         )
 
-    if to_state == LeadState.QUALIFYING and lead is not None and config is not None:
-        if not _has_critical_fields(lead, config):
-            return TransitionResult(
-                allowed=False,
-                reason="missing critical fields for qualification",
-            )
+    if (
+        to_state == LeadState.QUALIFYING
+        and lead is not None
+        and config is not None
+        and not _has_critical_fields(lead, config)
+    ):
+        return TransitionResult(
+            allowed=False,
+            reason="missing critical fields for qualification",
+        )
 
     if to_state == LeadState.CRM_WRITE and lead is not None and config is not None:
         qual = calculate_score(lead, config)

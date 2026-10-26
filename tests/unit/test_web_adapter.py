@@ -13,12 +13,12 @@ from src.llm.contracts import AIOutput, Intent, SuggestedAction
 
 def _make_lead(**overrides) -> Lead:
     now = datetime.now()
-    defaults = dict(
-        id="test-id",
-        channel_user_id=0,
-        created_at=now,
-        updated_at=now,
-    )
+    defaults = {
+        "id": "test-id",
+        "channel_user_id": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
     defaults.update(overrides)
     return Lead(**defaults)
 

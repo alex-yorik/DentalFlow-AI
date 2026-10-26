@@ -10,19 +10,19 @@ RULES = RulesConfig(
 
 
 def _output(**kwargs) -> AIOutput:
-    defaults = dict(
-        intent=Intent.FAQ,
-        confidence=0.95,
-        reply_text="We are open Mon-Fri.",
-        is_lead=False,
-        extracted_fields=[],
-        missing_fields=[],
-        suggested_action=SuggestedAction.ANSWER_FAQ,
-        safe=True,
-        crm_write_allowed=False,
-        schedule_followup=False,
-        escalation_needed=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ,
+        "confidence": 0.95,
+        "reply_text": "We are open Mon-Fri.",
+        "is_lead": False,
+        "extracted_fields": [],
+        "missing_fields": [],
+        "suggested_action": SuggestedAction.ANSWER_FAQ,
+        "safe": True,
+        "crm_write_allowed": False,
+        "schedule_followup": False,
+        "escalation_needed": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 
