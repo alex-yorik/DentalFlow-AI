@@ -409,13 +409,13 @@ docker compose ps                               # web Up (healthy), nginx Up
 
 #### DoD v2 (10 пунктов)
 
-1. ✅ `/docs`, `/redoc`, `/openapi.json`, `/metrics`, неизвестный путь → 404; `/`, `/health` → 200.
-2. ✅ README точно описывает поверхность nginx (allowlist `/`, `/api/chat`, `/health`; `/metrics` — 404).
-3. ✅ `ruff.toml` содержит `E,F,W,I,UP,B,C4,SIM,BLE`; `ruff check` = 0; подавления точечные и с причиной.
-4. ✅ README Tech Stack называет фактические правила ruff и настройки mypy.
-5. ✅ Quick-start: `make init` → ключ → `make demo` без chown/restart/502 (UID 1000, clean clone).
-6. ✅ `.gitleaksignore` — 1 отпечаток; повторный скан чист; пояснения в `docs/security.md` и README.
-7. ✅ Нет утверждений о «production-ready» как о текущем состоянии (исторические цитаты — только в этом отчёте).
-8. ✅ `release.yml` с минимальными правами, помечен **NOT VERIFIED** до первого релиза.
-9. ✅ Отчёт актуален: PR #1 смержен, T1–T5, раскрытие ruff, раздел v2.
-10. ✅ CI на ветке зелёный (PR #2, см. checks); пункты раздела 1 не нарушены.
+1. [x] `/docs`, `/redoc`, `/openapi.json`, `/metrics`, неизвестный путь → 404; `/`, `/health` → 200.
+2. [x] README точно описывает поверхность nginx (allowlist `/`, `/api/chat`, `/health`; `/metrics` — 404).
+3. [x] `ruff.toml` содержит `E,F,W,I,UP,B,C4,SIM,BLE`; `ruff check` = 0; подавления точечные и с причиной.
+4. [x] README Tech Stack называет фактические правила ruff и настройки mypy.
+5. [x] Quick-start: `make init` → ключ → `make demo` без chown/restart/502 (UID 1000, clean clone).
+6. [x] `.gitleaksignore` — 1 отпечаток; повторный скан чист; пояснения в `docs/security.md` и README.
+7. [x] Нет утверждений о «production-ready» как о текущем состоянии (исторические цитаты — только в этом отчёте).
+8. [x] `release.yml` с минимальными правами, помечен **NOT VERIFIED** до первого релиза.
+9. [x] Отчёт актуален: PR #1 смержен, T1–T5, раскрытие ruff, раздел v2.
+10. [ ] CI на ветке зелёный (PR #2, см. checks); пункты раздела 1 не нарушены. — **PENDING**: PR ещё не открыт (на сервере нет GitHub API-токена).
