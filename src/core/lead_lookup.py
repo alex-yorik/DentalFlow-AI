@@ -1,5 +1,5 @@
 from src.leads.models import Lead, LeadState
-from src.leads.repository import get_lead_by_chat_id, create_lead
+from src.leads.repository import create_lead, get_lead_by_chat_id
 
 
 async def resolve_lead(

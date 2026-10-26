@@ -1,7 +1,7 @@
 import logging
 
-from src.leads.models import Lead
 from src.integrations.crm.provider import CRMProvider
+from src.leads.models import Lead
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,5 @@
 from unittest.mock import AsyncMock, patch
 
-
 from src.llm.client import LLMClient
 from src.llm.contracts import AIInput, AIOutput
 
@@ -32,7 +31,12 @@ class TestLLMClient:
 
     def test_config_base_url_wired_into_client(self):
         from src.bootstrap import bootstrap
-        with patch("src.bootstrap.load_config") as mock_load, patch("src.bootstrap.LLMClient") as mock_client, patch("src.bootstrap.validate_required_env"), patch("src.bootstrap.setup_logging"):
+        with (
+            patch("src.bootstrap.load_config") as mock_load,
+            patch("src.bootstrap.LLMClient") as mock_client,
+            patch("src.bootstrap.validate_required_env"),
+            patch("src.bootstrap.setup_logging"),
+        ):
             from unittest.mock import MagicMock
             cfg = MagicMock()
             cfg.openai_api_key = "k"

@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.channels.whatsapp.adapter import (
-    router,
     WhatsAppOutgoingAdapter,
+    router,
 )
 from src.llm.client import LLMClient
 
@@ -92,8 +92,9 @@ class TestWhatsAppWebhook:
         assert created and created[0][1] == "whatsapp" and created[0][2] == "whatsapp"
 
     def test_blocked_lead_returns_error(self, client, monkeypatch, demo_app_config):
-        from src.leads.models import Lead, LeadState
         from datetime import datetime
+
+        from src.leads.models import Lead, LeadState
 
         now = datetime.now()
         blocked = Lead(id="b1", channel_user_id=123, state=LeadState.BLOCKED, created_at=now, updated_at=now)

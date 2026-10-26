@@ -1,5 +1,5 @@
-from src.llm.contracts import AIOutput, SuggestedAction
 from src.config.loader import RulesConfig
+from src.llm.contracts import AIOutput, SuggestedAction
 
 
 class ValidationResult:
@@ -23,7 +23,7 @@ def validate_ai_output(output: AIOutput, rules: RulesConfig) -> ValidationResult
         return ValidationResult(
             valid=False,
             ai_output=output,
-            reason="is_lead=True but suggested_action={}".format(output.suggested_action.value),
+            reason=f"is_lead=True but suggested_action={output.suggested_action.value}",
         )
 
     if not output.is_lead and output.suggested_action in (
@@ -32,7 +32,7 @@ def validate_ai_output(output: AIOutput, rules: RulesConfig) -> ValidationResult
         return ValidationResult(
             valid=False,
             ai_output=output,
-            reason="is_lead=False but suggested_action={}".format(output.suggested_action.value),
+            reason=f"is_lead=False but suggested_action={output.suggested_action.value}",
         )
 
     if output.intent.name == "UNSAFE" and output.safe:

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import signal
 
@@ -42,12 +43,10 @@ async def run_watchdog(config) -> None:
                     await alerter.send_recovered(event.service)
             if events:
                 logger.info("Watchdog events: %s", [e.kind + ":" + e.service for e in events])
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 # watchdog tick must not stop on a single failure
             logger.error("Watchdog tick failed: %s", e)
-        try:
+        with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(shutdown_event.wait(), timeout=config.monitoring.watchdog_interval)
-        except asyncio.TimeoutError:
-            pass
 
     await close_connection()
 

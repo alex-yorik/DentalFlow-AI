@@ -16,7 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 def _build_web_app(config):
-    app = FastAPI(title="DentalFlow AI Web Channel")
+    app = FastAPI(
+        title="DentalFlow AI Web Channel",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
 
     @app.get("/health")
     async def health():

@@ -32,5 +32,5 @@ class Alerter:
         try:
             await self._bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
             logger.info("Alert sent: %s %s", status, subject)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 # alert delivery failure must not propagate
             logger.error("Failed to send %s alert for %s: %s", status, subject, e)

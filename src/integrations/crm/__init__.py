@@ -1,5 +1,5 @@
-from src.integrations.crm.provider import CRMProvider
 from src.integrations.crm.mock import MockCRMProvider
+from src.integrations.crm.provider import CRMProvider
 
 _registry: dict[str, type[CRMProvider]] = {
     "mock": MockCRMProvider,

@@ -7,18 +7,18 @@ from fastapi.testclient import TestClient
 
 from src.channels.web.adapter import router
 from src.leads.models import Lead
-from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from src.llm.client import LLMClient
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 
 
 def _make_lead(**overrides) -> Lead:
     now = datetime.now()
-    defaults = dict(
-        id="test-id",
-        channel_user_id=0,
-        created_at=now,
-        updated_at=now,
-    )
+    defaults = {
+        "id": "test-id",
+        "channel_user_id": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
     defaults.update(overrides)
     return Lead(**defaults)
 

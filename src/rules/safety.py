@@ -1,7 +1,7 @@
 import re
 
-from src.llm.contracts import AIOutput, Intent
 from src.config.loader import RulesConfig
+from src.llm.contracts import AIOutput, Intent
 
 
 class SafetyVerdict:

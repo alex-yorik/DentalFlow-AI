@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
@@ -7,7 +7,7 @@ import pytest
 from src.config.loader import AppConfig, MonitoringConfig, load_client_config
 from src.monitoring.watchdog import SERVICES, Watchdog, _probe_web
 
-T0 = datetime(2026, 8, 3, 12, 0, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 8, 3, 12, 0, 0, tzinfo=UTC)
 
 _CLIENT = load_client_config("demo_dental")
 
@@ -34,7 +34,7 @@ def make_probe(state: dict):
 async def test_healthy_services_no_events():
     w = Watchdog(_cfg(), probe=make_probe({}), now_provider=lambda: T0)
     assert await w.tick() == []
-    assert w.status == {s: "up" for s in SERVICES}
+    assert w.status == dict.fromkeys(SERVICES, "up")
 
 
 async def test_up_to_down_emits_down_once():

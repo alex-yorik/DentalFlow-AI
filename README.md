@@ -41,7 +41,7 @@ Real transcript from a live session against the Bright Smile Dental demo configu
 - SQLite (aiosqlite, WAL) + Alembic (migrations)
 - Pydantic v2 (config validation)
 - Docker + docker-compose
-- pytest / pytest-asyncio (tests), ruff / mypy (linting and typing)
+- pytest / pytest-asyncio (tests), ruff (rule families: E, F, W, I, UP, B, C4, SIM, BLE), mypy (default strictness plus warn_unused_ignores, warn_redundant_casts), bandit (medium+ severity)
 
 ## Architecture
 
@@ -60,7 +60,7 @@ Web channel (FastAPI) ─────┼─▶ message_processor ─▶ rules/sa
 
 Services (docker-compose):
 - **telegram** — python-telegram-bot, message intake and processing
-- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (nginx exposes only `/api/chat` and `/health`; `/metrics` is internal-network only)
+- **web** — FastAPI /api/chat, /health, /metrics, and the demo chat page / (nginx exposes only /, /api/chat and /health; everything else returns 404; /metrics is internal-network only)
 - **followup** — background reminders and follow-up touches
 - **watchdog** — service health checks, Telegram alerts
 - **backup** — SQLite backups via the sqlite3 backup API
@@ -82,37 +82,42 @@ Security measures below were reviewed in an AI-assisted self-review
 - Fail-fast configuration validation: required variables are checked at startup, no defaults for secrets.
 - Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` (HTTP 429)
 - `/metrics` is not exposed through nginx (returns 404); it is reachable only inside the Docker network
+- API documentation endpoints (/docs, /redoc, /openapi.json) are disabled
+- nginx uses an allowlist of routes; any other path returns 404
 - Security headers: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
 - Conversation safety: blocked phrases, refusal limit, safe messages by default
 - WAL + `busy_timeout=5000` (database locking eliminated)
 - Scheduled backups (every 6 h by default) with rotation (7 days by default)
 - `.env` and `data/` are git-ignored; `.env`, `data/`, tests and docs are excluded from the Docker image (`.dockerignore`).
 - Multi-container deployment (build → up -d)
+- Full git history was scanned with gitleaks (8.30.1, 2026-10-26): the only finding is a throwaway self-signed localhost key committed early and since removed (see `docs/security.md`).
 
 All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
 ## Installation
-1. Copy `.env.example` to `.env`
-2. Fill in `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` (all other parameters have defaults)
-3. Generate self-signed TLS certificates for local use: `make certs`
-4. `docker-compose up -d`
-5. After the first start, give the containers write access to SQLite and restart them: `sudo chown -R 1000:1000 data/ && docker-compose restart`. Containers run as UID 1000; otherwise SQLite opens read-only (see [Deployment](#deployment)).
+1. `make init` — create `data/` and copy `.env.example` to `.env` if needed.
+2. Edit `.env`: set `OPENAI_API_KEY`. For OpenRouter or another OpenAI-compatible endpoint, also set `OPENAI_BASE_URL` and `OPENAI_MODEL`. `TELEGRAM_BOT_TOKEN` is needed only for the Telegram service.
+3. `make demo` — build and start `web` + `nginx`, wait until `web` is healthy, and generate local TLS certificates.
 
 `make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
+
+Containers run as UID 1000. `make init` creates `data/` as your current user; if your UID is not 1000, it prints a hint. To fix permissions, run `sudo chown -R 1000:1000 data/` (not needed when your user is UID 1000).
 
 ## Try It Without Telegram
 
 The web channel runs on the same message processor as the bot, so the full flow works without a Telegram token:
 
 ```bash
-make certs
-docker compose up -d web nginx
-sudo chown -R 1000:1000 data/   # containers run as UID 1000 (see Deployment)
-docker compose restart web
-curl -s -X POST http://localhost:80/api/chat \
+make init
+# edit .env: set OPENAI_API_KEY (and OPENAI_BASE_URL/OPENAI_MODEL for OpenRouter)
+make demo
+curl -sk https://localhost:443/health
+curl -sk -X POST https://localhost:443/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"channel_id":"demo-patient-1","text":"Hi! Do you accept new patients?"}'
 ```
+
+If you changed `NGINX_SSL_PORT` in `.env`, use that port in the URL instead of `443`.
 
 `make certs` generates a self-signed certificate for local demonstration. A public server needs a trusted Let's Encrypt certificate — see [docs/ssl_setup.md](docs/ssl_setup.md).
 

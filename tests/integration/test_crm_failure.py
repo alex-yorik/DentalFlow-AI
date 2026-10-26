@@ -2,14 +2,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.config.loader import AppConfig, load_client_config
-from src.llm.contracts import AIOutput, Intent, SuggestedAction
-from src.llm.client import LLMClient
 from src.channels.telegram.handlers import handle_message
-from src.leads.models import LeadState
-from src.leads.repository import get_lead_by_chat_id, create_lead, update_lead
-from src.leads.state_machine import apply_transition
+from src.config.loader import AppConfig, load_client_config
 from src.followup import FollowUpEngine
+from src.leads.models import LeadState
+from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
+from src.leads.state_machine import apply_transition
+from src.llm.client import LLMClient
+from src.llm.contracts import AIOutput, Intent, SuggestedAction
 from tests.conftest import CLIENT_NAME
 
 _CHAT_ID = 88800
@@ -56,19 +56,19 @@ def mock_context(config, mock_llm):
 
 
 def _make_output(**kwargs) -> AIOutput:
-    defaults = dict(
-        intent=Intent.FAQ,
-        confidence=0.95,
-        reply_text="OK",
-        is_lead=False,
-        extracted_fields=[],
-        missing_fields=[],
-        suggested_action=SuggestedAction.ANSWER_FAQ,
-        safe=True,
-        crm_write_allowed=False,
-        schedule_followup=False,
-        escalation_needed=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ,
+        "confidence": 0.95,
+        "reply_text": "OK",
+        "is_lead": False,
+        "extracted_fields": [],
+        "missing_fields": [],
+        "suggested_action": SuggestedAction.ANSWER_FAQ,
+        "safe": True,
+        "crm_write_allowed": False,
+        "schedule_followup": False,
+        "escalation_needed": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 

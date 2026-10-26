@@ -137,3 +137,14 @@ The lead state machine (`src/leads/state_machine.py`) enforces:
 | `max_refusal_count` enforced: `check_safety()` increments `lead.refusal_count` and escalates at threshold | Safety config declares 3 refusals, but no counter tracks them | Low |
 | In-memory rate limit dict grows unbounded (no cleanup for stale chat_ids) — acceptable for MVP, backlog for production | Stale entries consume memory over long-running instances | Low |
 | No coverage of security paths in tests | Safety and validation logic lacks dedicated security test scenarios | Low |
+
+---
+
+## Known scanner finding
+Full git history was scanned with gitleaks 8.30.1 on 2026-10-26.
+The only finding is a throwaway self-signed localhost private key
+(`docker/certs/privkey.pem`) committed in 695893b and removed from
+tracking in d50277f. This key has no production value: it is for
+localhost only, regenerated locally via `make certs`, and `*.pem` is
+in `.gitignore`. History was not rewritten per owner decision.
+The fingerprint is allowlisted in `.gitleaksignore`.

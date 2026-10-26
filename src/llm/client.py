@@ -45,7 +45,7 @@ class LLMClient:
                 response_format=AIOutput,
                 temperature=0.1,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 # any SDK/network error must fall back safely
             logger.error("OpenAI API call failed: %s", e)
             return self._fallback(reason=f"API error: {e}")
 

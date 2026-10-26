@@ -1,10 +1,9 @@
 import enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 
-class Intent(str, enum.Enum):
+class Intent(enum.StrEnum):
     FAQ = "faq"
     LEAD = "lead"
     RESCHEDULE = "reschedule"
@@ -12,7 +11,7 @@ class Intent(str, enum.Enum):
     UNSAFE = "unsafe"
 
 
-class SuggestedAction(str, enum.Enum):
+class SuggestedAction(enum.StrEnum):
     ANSWER_FAQ = "answer_faq"
     ASK_FIELD = "ask_field"
     QUALIFY = "qualify"
@@ -40,7 +39,7 @@ class AIOutput(BaseModel):
     crm_write_allowed: bool = Field(description="Whether CRM write is appropriate")
     schedule_followup: bool = Field(description="Whether to schedule a follow-up")
     escalation_needed: bool = Field(description="Whether to notify a human")
-    escalation_reason: Optional[str] = Field(default=None)
+    escalation_reason: str | None = Field(default=None)
     is_fallback: bool = False
 
 

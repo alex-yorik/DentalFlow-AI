@@ -3,7 +3,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.config.loader import AppConfig, ClientConfig, BusinessInfo, RulesConfig, QualificationConfig, FollowUpConfig, PromptCollection
+from src.config.loader import (
+    AppConfig,
+    BusinessInfo,
+    ClientConfig,
+    FollowUpConfig,
+    PromptCollection,
+    QualificationConfig,
+    RulesConfig,
+)
 from src.integrations.notifications import notify_staff_followup_complete
 from src.leads.models import Lead, LeadState
 
@@ -34,15 +42,15 @@ def _make_config(staff_chat_id: int = 123456789) -> AppConfig:
 
 
 def _make_lead(**overrides) -> Lead:
-    defaults = dict(
-        id="1",
-        channel_user_id=12345,
-        state=LeadState.FOLLOWUP_PENDING,
-        name="Test User",
-        phone="+1234567890",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
-    )
+    defaults = {
+        "id": "1",
+        "channel_user_id": 12345,
+        "state": LeadState.FOLLOWUP_PENDING,
+        "name": "Test User",
+        "phone": "+1234567890",
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+    }
     defaults.update(overrides)
     return Lead(**defaults)
 

@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 
@@ -14,7 +14,7 @@ _MAX_PER_CHAT = 20
 
 
 async def append_message(channel_user_id: int, role: str, text: str) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:

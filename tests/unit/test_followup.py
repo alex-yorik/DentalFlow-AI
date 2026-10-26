@@ -1,13 +1,12 @@
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.followup import FollowUpEngine
+from src.followup import FollowUpEngine, _acquire_task, _cancel_tasks_by_lead, _get_due_tasks, _insert_task
 from src.followup.models import FollowUpTask
-from src.followup import _insert_task, _acquire_task, _get_due_tasks, _cancel_tasks_by_lead
 from src.leads.models import LeadState
 from src.leads.repository import create_lead, get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
@@ -15,18 +14,18 @@ from src.storage.appointment_repository import create_appointment
 
 
 def _make_task(lead_id: str, chat_id: int, **overrides) -> FollowUpTask:
-    now = datetime.now(timezone.utc)
-    defaults = dict(
-        id=str(uuid.uuid4()),
-        lead_id=lead_id,
-        chat_id=chat_id,
-        retry_count=0,
-        max_retries=2,
-        next_run_at=now,
-        status="pending",
-        created_at=now,
-        updated_at=now,
-    )
+    now = datetime.now(UTC)
+    defaults = {
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "chat_id": chat_id,
+        "retry_count": 0,
+        "max_retries": 2,
+        "next_run_at": now,
+        "status": "pending",
+        "created_at": now,
+        "updated_at": now,
+    }
     defaults.update(overrides)
     return FollowUpTask(**defaults)
 
@@ -55,7 +54,7 @@ def _make_engine_config(overrides: dict | None = None) -> MagicMock:
 @pytest.mark.asyncio
 async def test_acquire_task_claims_only_once(db):
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     task = _make_task("lead-1", 100, id=task_id, next_run_at=now)
     await _insert_task(task)
 
@@ -69,7 +68,7 @@ async def test_acquire_task_claims_only_once(db):
 @pytest.mark.asyncio
 async def test_acquire_task_skips_non_pending(db):
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     task = _make_task("lead-2", 200, id=task_id, next_run_at=now, status="completed")
     await _insert_task(task)
 
@@ -86,7 +85,7 @@ async def test_acquire_task_unknown_id(db):
 @pytest.mark.asyncio
 async def test_get_due_tasks_skips_acquired(db):
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     task = _make_task("lead-3", 300, id=task_id, next_run_at=now - timedelta(minutes=5), status="running")
     await _insert_task(task)
 
@@ -97,7 +96,7 @@ async def test_get_due_tasks_skips_acquired(db):
 @pytest.mark.asyncio
 async def test_cancel_followup_mid_cycle(db):
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     task = _make_task("lead-4", 400, id=task_id, next_run_at=now - timedelta(minutes=1))
     await _insert_task(task)
 
@@ -126,7 +125,7 @@ def test_followup_poll_interval_default():
 
 @pytest.mark.asyncio
 async def test_reschedule_pending_recovery(db):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale = _make_task("lead-s1", 500, next_run_at=now - timedelta(hours=2), retry_count=1)
     future = _make_task("lead-s2", 501, next_run_at=now + timedelta(hours=2), retry_count=1)
     await _insert_task(stale)
@@ -156,8 +155,14 @@ async def test_send_followup_full_cycle_reschedule(db):
     apply_transition(lead, LeadState.FOLLOWUP_PENDING)
     await update_lead(lead)
 
-    now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    now = datetime.now(UTC)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=2,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -170,7 +175,7 @@ async def test_send_followup_full_cycle_reschedule(db):
     bot.send_message.assert_awaited_once()
     assert bot.send_message.call_args[1]["chat_id"] == lead.channel_user_id
 
-    updated = await _get_due_tasks(datetime.now(timezone.utc) + timedelta(minutes=61))
+    updated = await _get_due_tasks(datetime.now(UTC) + timedelta(minutes=61))
     task_updated = next((t for t in updated if t.id == task.id), None)
     assert task_updated is not None, "task should be rescheduled with future next_run_at"
     assert task_updated.retry_count == 1, "retry_count should be incremented"
@@ -184,8 +189,14 @@ async def test_send_followup_full_cycle_complete(db):
     apply_transition(lead, LeadState.FOLLOWUP_PENDING)
     await update_lead(lead)
 
-    now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    now = datetime.now(UTC)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=1,
+    )
     await _insert_task(task)
 
     config = _make_engine_config(overrides={"max_retries": 1})
@@ -197,7 +208,7 @@ async def test_send_followup_full_cycle_complete(db):
 
     bot.send_message.assert_awaited_once()
 
-    due = await _get_due_tasks(datetime.now(timezone.utc) + timedelta(hours=1))
+    due = await _get_due_tasks(datetime.now(UTC) + timedelta(hours=1))
     assert task.id not in [t.id for t in due], "completed task should not be due"
 
     lead_updated = await get_lead_by_chat_id(lead.channel_user_id)
@@ -225,8 +236,14 @@ async def test_send_followup_uses_existing_appointment_template(db):
     await update_lead(lead)
     await create_appointment(lead)
 
-    now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=2)
+    now = datetime.now(UTC)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=2,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()
@@ -250,7 +267,7 @@ async def test_send_followup_error_recovery(db):
     apply_transition(lead, LeadState.FOLLOWUP_PENDING)
     await update_lead(lead)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0)
     await _insert_task(task)
 
@@ -261,7 +278,7 @@ async def test_send_followup_error_recovery(db):
 
     await engine._send_followup(task)
 
-    due = await _get_due_tasks(datetime.now(timezone.utc))
+    due = await _get_due_tasks(datetime.now(UTC))
     task_after = next((t for t in due if t.id == task.id), None)
     assert task_after is not None, "task should still be due after error"
     assert task_after.status == "pending", "task status should be reset to pending after error"
@@ -276,8 +293,14 @@ async def test_send_followup_dual_acquire(db):
     apply_transition(lead, LeadState.FOLLOWUP_PENDING)
     await update_lead(lead)
 
-    now = datetime.now(timezone.utc)
-    task = _make_task(lead.id, lead.channel_user_id, next_run_at=now - timedelta(minutes=5), retry_count=0, max_retries=1)
+    now = datetime.now(UTC)
+    task = _make_task(
+        lead.id,
+        lead.channel_user_id,
+        next_run_at=now - timedelta(minutes=5),
+        retry_count=0,
+        max_retries=1,
+    )
     await _insert_task(task)
 
     config = _make_engine_config()

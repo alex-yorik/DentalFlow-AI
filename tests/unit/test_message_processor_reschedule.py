@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from src.core.message_processor import process_message
 from src.channels.base import IncomingMessage
+from src.core.message_processor import process_message
 from src.leads.models import Lead, LeadState
 from src.llm.contracts import AIOutput, ExtractedField, Intent, SuggestedAction
 from src.storage.appointment_repository import (
@@ -22,7 +22,7 @@ class _RecorderClient:
 
 
 def _lead(chat_id=42, name="John", phone="555-0100", service="Cleaning"):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Lead(
         id="lead-1", channel_user_id=chat_id, state=LeadState.COLLECT_FIELDS,
         name=name, phone=phone, service_interest=service,
@@ -32,13 +32,13 @@ def _lead(chat_id=42, name="John", phone="555-0100", service="Cleaning"):
 
 
 def _output(**kwargs):
-    defaults = dict(
-        intent=Intent.FAQ, confidence=0.95, reply_text="ok", is_lead=False,
-        extracted_fields=[], missing_fields=[],
-        suggested_action=SuggestedAction.CLOSE, safe=True,
-        crm_write_allowed=False, schedule_followup=False,
-        escalation_needed=False, is_fallback=False,
-    )
+    defaults = {
+        "intent": Intent.FAQ, "confidence": 0.95, "reply_text": "ok", "is_lead": False,
+        "extracted_fields": [], "missing_fields": [],
+        "suggested_action": SuggestedAction.CLOSE, "safe": True,
+        "crm_write_allowed": False, "schedule_followup": False,
+        "escalation_needed": False, "is_fallback": False,
+    }
     defaults.update(kwargs)
     return AIOutput(**defaults)
 

@@ -1,0 +1,2 @@
+# throwaway self-signed localhost cert, see docs/security.md
+695893bb3cf535761802957c8e3ffc0f84623cc9:docker/certs/privkey.pem:private-key:1

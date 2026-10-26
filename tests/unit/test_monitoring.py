@@ -1,7 +1,7 @@
 import asyncio
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiosqlite
@@ -36,7 +36,7 @@ async def beat_db(db_path):
 @pytest.mark.asyncio
 async def test_write_heartbeat_creates_row(monkeypatch, beat_db):
     monkeypatch.setattr("src.monitoring.heartbeat.get_connection", beat_db["get_connection"])
-    now = datetime(2026, 8, 3, 12, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 3, 12, 0, 0, tzinfo=UTC)
     await write_heartbeat("telegram", now)
     assert await beat_db["fetch"]("telegram") == now.isoformat()
 
@@ -44,8 +44,8 @@ async def test_write_heartbeat_creates_row(monkeypatch, beat_db):
 @pytest.mark.asyncio
 async def test_write_heartbeat_updates_row(monkeypatch, beat_db):
     monkeypatch.setattr("src.monitoring.heartbeat.get_connection", beat_db["get_connection"])
-    await write_heartbeat("telegram", datetime(2026, 8, 3, 12, 0, 0, tzinfo=timezone.utc))
-    later = datetime(2026, 8, 3, 12, 1, 0, tzinfo=timezone.utc)
+    await write_heartbeat("telegram", datetime(2026, 8, 3, 12, 0, 0, tzinfo=UTC))
+    later = datetime(2026, 8, 3, 12, 1, 0, tzinfo=UTC)
     await write_heartbeat("telegram", later)
     assert await beat_db["fetch"]("telegram") == later.isoformat()
 
@@ -78,7 +78,7 @@ def test_worker_healthcheck_ok_when_fresh(db_path):
     import sqlite3
 
     conn = sqlite3.connect(str(db_path))
-    ts = (datetime.now(timezone.utc) - timedelta(seconds=10)).isoformat()
+    ts = (datetime.now(UTC) - timedelta(seconds=10)).isoformat()
     conn.execute(
         "INSERT INTO service_heartbeats (service, last_beat) VALUES (?, ?)",
         ("telegram", ts),
@@ -92,7 +92,7 @@ def test_worker_healthcheck_fails_when_stale(db_path):
     import sqlite3
 
     conn = sqlite3.connect(str(db_path))
-    ts = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
+    ts = (datetime.now(UTC) - timedelta(seconds=200)).isoformat()
     conn.execute(
         "INSERT INTO service_heartbeats (service, last_beat) VALUES (?, ?)",
         ("telegram", ts),

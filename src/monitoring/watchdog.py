@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 from src.storage.database import get_connection
@@ -38,25 +38,25 @@ async def _probe_web(url: str, timeout: float = 5.0) -> bool:
 
     try:
         return await asyncio.to_thread(_request)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 # any probe failure is reported as "down"
         return False
 
 
 async def _probe_worker(service: str, max_age_seconds: int, now: datetime | None = None) -> bool:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     try:
         conn = await get_connection()
         cur = await conn.execute(
             "SELECT last_beat FROM service_heartbeats WHERE service = ?", (service,)
         )
         row = await cur.fetchone()
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 # storage probe failure is reported as "down"
         return False
     if row is None or row[0] is None:
         return False
     last_beat = datetime.fromisoformat(row[0])
     if last_beat.tzinfo is None:
-        last_beat = last_beat.replace(tzinfo=timezone.utc)
+        last_beat = last_beat.replace(tzinfo=UTC)
     return (now - last_beat) <= timedelta(seconds=max_age_seconds)
 
 
@@ -70,8 +70,8 @@ class Watchdog:
     def __init__(self, config, probe=None, now_provider=None) -> None:
         self._config = config
         self._probe = probe or self._default_probe
-        self._now = now_provider or (lambda: datetime.now(timezone.utc))
-        self._status: dict[str, ServiceStatus] = {s: ServiceStatus.DOWN for s in SERVICES}
+        self._now = now_provider or (lambda: datetime.now(UTC))
+        self._status: dict[str, ServiceStatus] = dict.fromkeys(SERVICES, ServiceStatus.DOWN)
         self._last_down_at: dict[str, datetime] = {}
         self._down_history: set[str] = set()
 

@@ -1,20 +1,20 @@
 import logging
 
-from src.config.loader import AppConfig, QualificationConfig
-from src.llm.contracts import AIInput, Intent
-from src.llm.client import LLMClient
-from src.rules.validator import validate_ai_output
-from src.rules.safety import check_safety
-from src.rules.qualification import calculate_score
-from src.leads.models import Lead, LeadState, PHONE_PATTERN, EMAIL_PATTERN
-from src.leads.repository import update_lead
-from src.leads.state_machine import suggest_state, validate_transition, apply_transition
-from src.integrations.notifications import notify_staff
 from src.channels.base import IncomingMessage, OutgoingAdapter
+from src.config.loader import AppConfig, QualificationConfig
 from src.followup import FollowUpEngine
+from src.integrations.notifications import notify_staff
+from src.leads.models import EMAIL_PATTERN, PHONE_PATTERN, Lead, LeadState
+from src.leads.repository import update_lead
+from src.leads.state_machine import apply_transition, suggest_state, validate_transition
+from src.llm.client import LLMClient
+from src.llm.contracts import AIInput, Intent
 from src.monitoring.metrics import metrics
-from src.storage.conversation_repository import append_message, get_recent_messages
+from src.rules.qualification import calculate_score
+from src.rules.safety import check_safety
+from src.rules.validator import validate_ai_output
 from src.storage.appointment_repository import create_appointment
+from src.storage.conversation_repository import append_message, get_recent_messages
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ def build_context(lead: Lead, existing_appointment: dict | None = None) -> str:
         when = existing_appointment.get("appointment_datetime") or "unspecified"
         service = existing_appointment.get("service") or ""
         parts.append(
-            f"Existing appointment: {service} on {when} — user asked to reschedule; confirm the change and ask for the new date/time"
+            f"Existing appointment: {service} on {when} — user asked to reschedule; "
+            "confirm the change and ask for the new date/time"
         )
     return "; ".join(parts)
 
@@ -165,7 +166,13 @@ def try_advance_lead(lead: Lead, qual_config: QualificationConfig) -> None:
             apply_transition(lead, LeadState.CRM_WRITE)
 
 
-async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, schedule_followup: bool = False, followup_engine: FollowUpEngine | None = None) -> None:
+async def _write_to_crm(
+    lead: Lead,
+    config: AppConfig,
+    bot_for_notifications,
+    schedule_followup: bool = False,
+    followup_engine: FollowUpEngine | None = None,
+) -> None:
     if lead.crm_contact_id:
         return
     from src.integrations.crm import get_provider
@@ -179,7 +186,7 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, sc
         await notify_staff(config, lead, bot_for_notifications)
         try:
             await create_appointment(lead)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 # appointment creation is best-effort
             logger.error("Failed to create appointment for lead %s: %s", lead.id, e)
 
         if schedule_followup and followup_engine:
@@ -191,7 +198,7 @@ async def _write_to_crm(lead: Lead, config: AppConfig, bot_for_notifications, sc
                 apply_transition(lead, LeadState.CLOSED)
         else:
             apply_transition(lead, LeadState.CLOSED)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 # CRM errors must not crash message handling; lead is reset
         logger.error("CRM write failed for lead %s (chat %s): %s", lead.id, lead.channel_user_id, e)
         lead.crm_contact_id = None
         apply_transition(lead, LeadState.COLLECT_FIELDS)
@@ -249,7 +256,12 @@ async def process_message(
 
     verdict = check_safety(output, config.client.rules, lead)
     if not verdict.allowed:
-        logger.warning("Safety check failed for %s %s: %s", msg.channel_type, msg.channel_user_id, verdict.blocked_reason)
+        logger.warning(
+            "Safety check failed for %s %s: %s",
+            msg.channel_type,
+            msg.channel_user_id,
+            verdict.blocked_reason,
+        )
         metrics.inc("messages_error")
         await outgoing.send_message(
             msg.channel_user_id,
@@ -297,5 +309,5 @@ async def process_message(
     await outgoing.send_message(msg.channel_user_id, output.reply_text)
     try:
         await append_message(lead.channel_user_id, "assistant", output.reply_text)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 # conversation logging is best-effort
         logger.error("Failed to record assistant message for chat %s: %s", msg.channel_user_id, e)

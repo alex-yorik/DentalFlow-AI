@@ -1,10 +1,10 @@
 import asyncio
+import contextlib
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import aiosqlite
-
 from telegram import Bot
 
 from src.config.loader import AppConfig, FollowUpConfig
@@ -14,8 +14,8 @@ from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id, update_lead
 from src.leads.state_machine import apply_transition
 from src.storage import database
-from src.storage.database import StorageError
 from src.storage.appointment_repository import find_existing_appointment
+from src.storage.database import StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ async def _insert_task(task: FollowUpTask) -> None:
 
 
 async def _update_task(task: FollowUpTask) -> None:
-    task.updated_at = datetime.now(timezone.utc)
+    task.updated_at = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -74,7 +74,7 @@ async def _update_task(task: FollowUpTask) -> None:
 
 
 async def _update_task_status(task_id: str, status: str) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -93,7 +93,7 @@ async def _update_task_status(task_id: str, status: str) -> None:
 
 
 async def _cancel_tasks_by_lead(lead_id: str) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -112,7 +112,7 @@ async def _cancel_tasks_by_lead(lead_id: str) -> None:
 
 
 async def _acquire_task(task_id: str) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         conn = await database.get_connection()
     except StorageError:
@@ -201,10 +201,8 @@ class FollowUpEngine:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         logger.info("FollowUpEngine stopped")
 
     async def schedule_followup(self, lead: Lead) -> None:
@@ -213,7 +211,7 @@ class FollowUpEngine:
             return
 
         delay = self.config.client.followup.delay_minutes
-        next_run = datetime.now(timezone.utc) + timedelta(minutes=delay)
+        next_run = datetime.now(UTC) + timedelta(minutes=delay)
 
         task = FollowUpTask(
             id=str(uuid.uuid4()),
@@ -221,8 +219,8 @@ class FollowUpEngine:
             chat_id=lead.channel_user_id,
             max_retries=self.config.client.followup.max_retries,
             next_run_at=next_run,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         await _insert_task(task)
         lead.followup_task_id = task.id
@@ -241,13 +239,13 @@ class FollowUpEngine:
                 await asyncio.sleep(interval)
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 # poll loop must survive arbitrary task errors
                 logger.error("FollowUpEngine loop error: %s", e)
                 await asyncio.sleep(interval)
 
     async def _reschedule_pending(self) -> None:
         tasks = await _get_pending_tasks()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for task in tasks:
             if task.next_run_at <= now:
                 task.next_run_at = now + _RESCHEDULE_DELAY
@@ -255,12 +253,12 @@ class FollowUpEngine:
                 logger.info("Rescheduled stale follow-up task %s for lead %s", task.id, task.lead_id)
 
     async def _process_due_tasks(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         tasks = await _get_due_tasks(now)
         for task in tasks:
             try:
                 await self._send_followup(task)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 # one failed task must not stop the poll loop
                 logger.error("Failed to send follow-up task %s: %s", task.id, e)
 
     async def _send_followup(self, task: FollowUpTask) -> None:
@@ -287,7 +285,7 @@ class FollowUpEngine:
 
         try:
             await self.bot.send_message(chat_id=task.chat_id, text=message)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 # delivery errors must still reset task state
             logger.error("Failed to send follow-up message to chat %s: %s", task.chat_id, e)
             await _update_task_status(task.id, "pending")
             return
@@ -301,7 +299,7 @@ class FollowUpEngine:
             logger.info("Follow-up completed for lead %s (max retries reached)", lead.id)
         else:
             delay = timedelta(minutes=followup.delay_minutes)
-            task.next_run_at = datetime.now(timezone.utc) + delay
+            task.next_run_at = datetime.now(UTC) + delay
             task.status = "pending"
             await _update_task(task)
             logger.info(
@@ -311,7 +309,11 @@ class FollowUpEngine:
 
     def _get_template(self, followup: FollowUpConfig, retry_count: int, has_appointment: bool = False) -> str | None:
         if retry_count == 0:
-            return followup.templates.get("existing_appointment") if has_appointment else followup.templates.get("initial")
+            return (
+                followup.templates.get("existing_appointment")
+                if has_appointment
+                else followup.templates.get("initial")
+            )
         elif retry_count < followup.max_retries:
             return followup.templates.get("reminder")
         return followup.templates.get("final")
