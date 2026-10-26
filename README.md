@@ -60,7 +60,7 @@ Web channel (FastAPI) ─────┼─▶ message_processor ─▶ rules/sa
 
 Services (docker-compose):
 - **telegram** — python-telegram-bot, message intake and processing
-- **web** — FastAPI `/api/chat`, `/health`, `/metrics` (nginx exposes only `/api/chat` and `/health`; `/metrics` is internal-network only)
+- **web** — FastAPI /api/chat, /health, /metrics, and the demo chat page / (nginx exposes only /, /api/chat and /health; everything else returns 404; /metrics is internal-network only)
 - **followup** — background reminders and follow-up touches
 - **watchdog** — service health checks, Telegram alerts
 - **backup** — SQLite backups via the sqlite3 backup API
@@ -82,6 +82,8 @@ Security measures below were reviewed in an AI-assisted self-review
 - Fail-fast configuration validation: required variables are checked at startup, no defaults for secrets.
 - Nginx rate limiting: 10 req/min on `/api/chat` (burst=20), 30 req/min on `/health` (HTTP 429)
 - `/metrics` is not exposed through nginx (returns 404); it is reachable only inside the Docker network
+- API documentation endpoints (/docs, /redoc, /openapi.json) are disabled
+- nginx uses an allowlist of routes; any other path returns 404
 - Security headers: `X-Frame-Options: DENY`, `nosniff`, `CSP default-src 'self'`, `server_tokens off`
 - Conversation safety: blocked phrases, refusal limit, safe messages by default
 - WAL + `busy_timeout=5000` (database locking eliminated)

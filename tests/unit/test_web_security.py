@@ -170,6 +170,42 @@ class TestCors:
         assert "access-control-allow-origin" not in denied.headers
 
 
+class TestApiDocsDisabled:
+    @pytest.fixture
+    def built_client(self, demo_app_config, mock_llm, monkeypatch):
+        async def fake_resolve_lead(chat_id, **kwargs):
+            return _make_lead(chat_id), ""
+
+        async def fake_process_message(msg, outgoing, lead, config, llm_client):
+            output = await llm_client.analyze(
+                AIInput(system_prompt="", user_message=msg.text)
+            )
+            await outgoing.send_message(msg.channel_user_id, output.reply_text)
+
+        monkeypatch.setattr(web_adapter, "resolve_lead", fake_resolve_lead)
+        monkeypatch.setattr(web_adapter, "process_message", fake_process_message)
+        monkeypatch.setattr("src.entrypoints.web.LLMClient", MagicMock)
+        app = _build_web_app(demo_app_config)
+        app.state.llm_client = mock_llm
+        return TestClient(app)
+
+    @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+    def test_api_docs_disabled(self, built_client, path):
+        assert built_client.get(path).status_code == 404
+
+    def test_health_still_available(self, built_client):
+        resp = built_client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+    def test_chat_still_works(self, built_client):
+        resp = built_client.post(
+            "/api/chat", json={"channel_id": "user1", "text": "hello"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["reply"] == "reply:hello"
+
+
 class TestWhatsAppVerificationHardening:
     @pytest.fixture
     def wa_app(self, demo_app_config):
