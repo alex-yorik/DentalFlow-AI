@@ -33,6 +33,10 @@ Real transcript from a live session against the Bright Smile Dental demo configu
 - **Patient:** Then Monday at 10am.
 - **Bright Smile Dental:** Thank you, Patient! I have noted your preferred time for a teeth cleaning appointment on Monday at 10 AM. We will check availability and confirm with you shortly.
 
+![DentalFlow demo bot in Telegram](docs/assets/demo-telegram.png)
+*Live demo session with the Bright Smile Dental configuration
+(synthetic patient data only).*
+
 ## Tech Stack
 - Python 3.12, async/await
 - python-telegram-bot 20.x (Telegram channel)
