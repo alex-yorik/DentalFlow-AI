@@ -90,14 +90,14 @@ Security measures below were reviewed in an AI-assisted self-review
 - Scheduled backups (every 6 h by default) with rotation (7 days by default)
 - `.env` and `data/` are git-ignored; `.env`, `data/`, tests and docs are excluded from the Docker image (`.dockerignore`).
 - Multi-container deployment (build → up -d)
-- Full git history was scanned with gitleaks (8.30.1, 2026-10-26): the only finding is a throwaway self-signed localhost key committed early and since removed (see `docs/security.md`).
+- Full git history was scanned with gitleaks (8.30.1, 2026-10-26): the only finding is a throwaway localhost key committed early and since removed (see `docs/security.md`).
 
 All secrets (`TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`) are stored in `.env`, never in code.
 
 ## Installation
 1. `make init` — create `data/` and copy `.env.example` to `.env` if needed.
 2. Edit `.env`: set `OPENAI_API_KEY`. For OpenRouter or another OpenAI-compatible endpoint, also set `OPENAI_BASE_URL` and `OPENAI_MODEL`. `TELEGRAM_BOT_TOKEN` is needed only for the Telegram service.
-3. `make demo` — build and start `web` + `nginx`, wait until `web` is healthy, and generate local TLS certificates.
+3. `make demo` — generate local TLS certificates, build and start `web` + `nginx`, and wait until `web` is healthy.
 
 `make certs` creates a self-signed certificate for local demonstration only. For a public server, use trusted Let's Encrypt certificates instead — see [docs/ssl_setup.md](docs/ssl_setup.md).
 
@@ -119,8 +119,6 @@ curl -sk -X POST https://localhost:443/api/chat \
 
 If you changed `NGINX_SSL_PORT` in `.env`, use that port in the URL instead of `443`.
 
-`make certs` generates a self-signed certificate for local demonstration. A public server needs a trusted Let's Encrypt certificate — see [docs/ssl_setup.md](docs/ssl_setup.md).
-
 `POST /api/chat` takes `channel_id` (1-64 chars, letters/digits/`_`/`-`) and `text` (1-2000 chars), and returns `{"reply": "..."}`. Use a new `channel_id` for a fresh conversation; replies are returned per request and are not stored in memory. Cross-origin browser access is disabled by default; set `CORS_ALLOW_ORIGINS` (comma-separated) to allow specific origins.
 
 Only `OPENAI_API_KEY` is required for the web demo — `TELEGRAM_BOT_TOKEN` is needed only by the `telegram` service. If port 80 is busy, set `NGINX_PORT` in `.env` and use that port in the URL.
@@ -137,7 +135,7 @@ After the first deployment: `chown -R <container uid> data/` (otherwise SQLite w
 
 ## Tests
 
-The project includes 33 test files with 291 test functions (unit + integration); measured statement coverage is 78% (`pytest --cov=src`):
+The project includes 34 test files with 299 test functions (unit + integration); the latest full run: 308 passed, 3 skipped, statement coverage 78% (`pytest --cov=src`):
 
 ```bash
 pip install -r requirements-dev.txt
