@@ -5,6 +5,14 @@ import pytest
 from src.channels.telegram.handlers import _extract_text_after_start, start_command
 
 
+@pytest.fixture(autouse=True)
+def _no_real_db(monkeypatch):
+    monkeypatch.setattr(
+        "src.channels.telegram.handlers.get_lead_by_chat_id",
+        AsyncMock(return_value=None),
+    )
+
+
 class TestExtractTextAfterStart:
     @pytest.mark.asyncio
     async def test_newline_trailing_text(self):
