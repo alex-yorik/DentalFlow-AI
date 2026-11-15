@@ -8,7 +8,7 @@ from src.storage.appointment_repository import (
     create_appointment,
     find_existing_appointment,
 )
-from src.storage.conversation_repository import get_recent_messages
+from src.storage.conversation_repository import append_message, get_recent_messages
 
 
 class _RecorderClient:
@@ -187,3 +187,51 @@ class TestReschedule:
         await process_message(_msg("I need to reschedule"), out, lead, demo_app_config, client)
 
         assert out.sent[-1] == demo_app_config.client.business.messages["reschedule_ask_time"]
+
+
+class TestPhoneUpdate:
+    async def test_extracted_phone_updates_existing_value(self, demo_app_config, db):
+        lead = _lead(phone="+79990001111")
+        client = _RecorderClient(_output(
+            extracted_fields=[ExtractedField(field_name="phone", value="+16547654321", confidence=0.95)],
+        ))
+        await process_message(_msg("my number is +16547654321"), _Outgoing(), lead, demo_app_config, client)
+
+        assert lead.phone == "+16547654321"
+
+    async def test_invalid_phone_keeps_existing_value(self, demo_app_config, db):
+        lead = _lead(phone="+79990001111")
+        client = _RecorderClient(_output(
+            extracted_fields=[ExtractedField(field_name="phone", value="call me maybe", confidence=0.95)],
+        ))
+        await process_message(_msg("call me maybe"), _Outgoing(), lead, demo_app_config, client)
+
+        assert lead.phone == "+79990001111"
+
+    async def test_new_phone_does_not_trigger_reschedule_ack(self, demo_app_config, db):
+        messages = demo_app_config.client.business.messages
+        lead = _lead(phone="+79990001111")
+        lead.preferred_time = "Saturday at 7 AM"
+        await append_message(
+            lead.channel_user_id,
+            "assistant",
+            messages["reschedule_ack"].replace("{preferred_time}", "Saturday at 7 AM"),
+        )
+
+        reply = "Thanks, I've updated your phone number to +16547654321."
+        client = _RecorderClient(_output(
+            intent=Intent.RESCHEDULE,
+            suggested_action=SuggestedAction.RESCHEDULE,
+            is_lead=False,
+            reply_text=reply,
+            extracted_fields=[ExtractedField(field_name="phone", value="+16547654321", confidence=0.95)],
+        ))
+        out = _Outgoing()
+        await process_message(
+            _msg("My phone number has changed, now it's +16547654321"),
+            out, lead, demo_app_config, client,
+        )
+
+        assert lead.phone == "+16547654321"
+        assert out.sent[-1] == reply
+        assert "you'd like to move your appointment" not in out.sent[-1]

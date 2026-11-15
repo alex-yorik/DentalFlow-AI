@@ -1,3 +1,6 @@
+from datetime import UTC, datetime, timedelta
+
+from src.core.lead_lookup import is_stale, reset_stale_lead
 from src.leads.models import LeadState
 from src.leads.repository import (
     create_lead,
@@ -6,6 +9,7 @@ from src.leads.repository import (
     lead_exists,
     update_lead,
 )
+from src.storage import database
 
 
 class TestLeadRepository:
@@ -60,3 +64,41 @@ class TestLeadRepository:
         assert retrieved is not None
         assert retrieved.id == second.id
         assert retrieved.id != first.id
+
+
+class TestStaleLeadReset:
+    async def _make_stale(self, chat_id: int):
+        lead = await create_lead(channel_user_id=chat_id)
+        conn = await database.get_connection()
+        old = (datetime.now(UTC) - timedelta(days=30)).isoformat()
+        await conn.execute("UPDATE leads SET updated_at = ? WHERE id = ?", (old, lead.id))
+        await conn.commit()
+        await conn.close()
+        stale = await get_lead_by_chat_id(chat_id)
+        assert stale is not None
+        return stale
+
+    async def test_stale_lead_is_closed_and_replaced(self, db):
+        stale = await self._make_stale(777)
+        assert is_stale(stale)
+
+        fresh = await reset_stale_lead(stale, source="telegram", channel_type="telegram")
+
+        assert fresh.id != stale.id
+        assert fresh.state == LeadState.NEW
+        assert not is_stale(fresh)
+
+        conn = await database.get_connection()
+        cursor = await conn.execute("SELECT state FROM leads WHERE id = ?", (stale.id,))
+        row = await cursor.fetchone()
+        await conn.close()
+        assert row["state"] == LeadState.CLOSED.value
+
+        current = await get_lead_by_chat_id(777)
+        assert current is not None
+        assert current.id == fresh.id
+
+    async def test_recent_lead_is_not_reset(self, db):
+        lead = await create_lead(channel_user_id=778)
+        same = await reset_stale_lead(lead, source="telegram", channel_type="telegram")
+        assert same.id == lead.id
