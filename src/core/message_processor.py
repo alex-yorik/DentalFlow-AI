@@ -1,7 +1,9 @@
 import logging
+import re
 
 from src.channels.base import IncomingMessage, OutgoingAdapter
 from src.config.loader import AppConfig, QualificationConfig
+from src.core.lead_lookup import reset_stale_lead
 from src.followup import FollowUpEngine
 from src.integrations.notifications import notify_staff
 from src.leads.models import EMAIL_PATTERN, PHONE_PATTERN, Lead, LeadState
@@ -28,6 +30,26 @@ _field_map = {
     "urgency": "urgency",
     "preferred_time": "preferred_time",
 }
+
+_PHONE_IN_TEXT_PATTERN = re.compile(r"\+?\d[\d\s\-\(\)]{5,18}\d")
+
+
+def _phone_digits(value: str) -> str:
+    return re.sub(r"\D", "", value)
+
+
+def _message_has_new_phone(text: str, previous_phone: str | None) -> bool:
+    previous_digits = _phone_digits(previous_phone or "")
+    for match in _PHONE_IN_TEXT_PATTERN.finditer(text):
+        candidate = match.group(0)
+        if text[match.end():match.end() + 1] == ":" or ":" in candidate:
+            continue
+        if re.match(r"^\d{4}-\d{2}-\d{2}", candidate):
+            continue
+        digits = _phone_digits(candidate)
+        if 7 <= len(digits) <= 15 and digits != previous_digits:
+            return True
+    return False
 
 
 def sanitize_input(text: str | None) -> str | None:
@@ -105,13 +127,31 @@ def _reschedule_flow_active(recent_messages, messages: dict[str, str]) -> bool:
     return False
 
 
-def _apply_reschedule_reply(output, lead: Lead, recent_messages, messages: dict[str, str]) -> None:
+def _apply_reschedule_reply(
+    output,
+    lead: Lead,
+    recent_messages,
+    messages: dict[str, str],
+    user_text: str = "",
+    previous_phone: str | None = None,
+) -> None:
     requested_time = _extracted_value(output, "preferred_time")
 
     if requested_time:
         lead.preferred_time = requested_time
     elif not _reschedule_flow_active(recent_messages, messages):
         lead.preferred_time = None
+
+    if user_text and _message_has_new_phone(user_text, previous_phone):
+        output.missing_fields = [f for f in output.missing_fields if f != "phone"]
+        if lead.preferred_time:
+            logger.info(
+                "New phone provided for chat %s; skipping reschedule acknowledgement",
+                lead.channel_user_id,
+            )
+            return
+        output.reply_text = messages["reschedule_ask_time"]
+        return
 
     if not lead.phone:
         output.reply_text = messages["reschedule_ask_phone"]
@@ -130,11 +170,24 @@ def apply_extracted_fields(lead: Lead, output, user_message: str, reply_text: st
         if field.confidence < 0.5:
             continue
         lead_field = _field_map.get(field.field_name)
-        if lead_field and getattr(lead, lead_field, None) is None:
-            if field.field_name == 'phone' and not PHONE_PATTERN.match(field.value):
+        if not lead_field:
+            continue
+
+        if field.field_name == 'phone':
+            if not PHONE_PATTERN.match(field.value):
                 logger.warning(f"LLM extracted invalid phone format: {field.value}")
                 continue
-            elif field.field_name == 'email' and not EMAIL_PATTERN.match(field.value):
+            if _phone_digits(lead.phone or "") == _phone_digits(field.value):
+                continue
+            if lead.phone != field.value:
+                logger.info(
+                    "Updating phone for lead %s (chat %s)", lead.id, lead.channel_user_id
+                )
+                lead.phone = field.value
+            continue
+
+        if getattr(lead, lead_field, None) is None:
+            if field.field_name == 'email' and not EMAIL_PATTERN.match(field.value):
                 logger.warning(f"LLM extracted invalid email format: {field.value}")
                 continue
             setattr(lead, lead_field, field.value)
@@ -274,13 +327,22 @@ async def process_message(
         await update_lead(lead)
         return
 
+    if output.intent == Intent.RESCHEDULE:
+        lead = await reset_stale_lead(lead, source=lead.source, channel_type=lead.channel_type)
+
+    previous_phone = lead.phone
     apply_extracted_fields(lead, output, user_text, output.reply_text)
 
     output.missing_fields = [f for f in output.missing_fields if not _known_missing(lead, f)]
 
     if output.intent == Intent.RESCHEDULE:
         _apply_reschedule_reply(
-            output, lead, recent_messages, config.client.business.messages
+            output,
+            lead,
+            recent_messages,
+            config.client.business.messages,
+            user_text=user_text,
+            previous_phone=previous_phone,
         )
 
     if output.is_lead and lead.state == LeadState.NEW:

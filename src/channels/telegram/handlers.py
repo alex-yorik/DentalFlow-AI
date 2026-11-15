@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from src.channels.base import IncomingMessage
 from src.config.loader import AppConfig
-from src.core.lead_lookup import resolve_lead
+from src.core.lead_lookup import reset_stale_lead, resolve_lead
 from src.core.message_processor import process_message, sanitize_input
 from src.leads.models import Lead, LeadState
 from src.leads.repository import get_lead_by_chat_id
@@ -69,9 +69,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     config: AppConfig = context.bot_data["config"]
     text = config.client.business.messages.get("welcome", "Hello!")
     message = update.message
-    if message is None:
+    chat = update.effective_chat
+    if message is None or chat is None:
         return
     await message.reply_text(text)
+
+    lead = await get_lead_by_chat_id(chat.id)
+    if lead is not None:
+        await reset_stale_lead(lead, source="telegram", channel_type="telegram")
 
     trailing = _extract_text_after_start(message.text)
     if trailing is not None:
