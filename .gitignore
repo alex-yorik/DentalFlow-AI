@@ -10,7 +10,10 @@ data/
 *.sqlite3
 .DS_Store
 *.pem
-.opencode/
+.opencode/*
+!.opencode/plugins/
+.opencode/plugins/*
+!.opencode/plugins/graphify.js
 graphify-out/
 .mypy_cache/
 .pytest_cache/
